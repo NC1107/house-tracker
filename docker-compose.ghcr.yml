@@ -1,0 +1,64 @@
+# House Tracker — deploy from prebuilt GHCR images (no local build).
+#
+# The `docker-publish.yml` workflow pushes these images. To deploy on a server:
+#   cp .env.example .env
+#   docker compose -f docker-compose.ghcr.yml pull
+#   docker compose -f docker-compose.ghcr.yml up -d
+#   # -> http://<server-ip>:3000
+#
+# Pick a specific image with IMAGE_TAG in .env (e.g. IMAGE_TAG=sha-abc1234); defaults to
+# `latest`. If the GHCR packages are private, run `docker login ghcr.io` first (or make the
+# packages public in the repo's Packages settings).
+#
+# Optional data load (needs FRED_API_KEY in .env):
+#   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run db:migrate
+#   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run seed:geo
+#   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:fred
+#   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:zillow
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-housetracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-housetracker}
+      POSTGRES_DB: ${POSTGRES_DB:-housetracker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-housetracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    image: ghcr.io/nc1107/house-tracker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://housetracker:housetracker@db:5432/housetracker}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # One-shot utility image (migrations / seeding / ingestion) run via `compose run`.
+  tools:
+    image: ghcr.io/nc1107/house-tracker-tools:${IMAGE_TAG:-latest}
+    profiles: ["tools"]
+    working_dir: /app
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://housetracker:housetracker@db:5432/housetracker}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

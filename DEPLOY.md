@@ -1,9 +1,47 @@
 # Deploying House Tracker
 
-Two supported paths. For your own server, use **Docker Compose** (below) — it runs the app
-and its Postgres together and keeps the database local.
+Three paths. For your own server, the simplest is **Option A** (pull the prebuilt image
+from GHCR). Option B builds locally instead. Both run the app + Postgres together and keep
+the database local.
 
-## Option A — Docker Compose (self-hosted, recommended for a server)
+## Option A — Prebuilt image from GHCR (no local build)
+
+The `Build and publish image` GitHub Action (`.github/workflows/docker-publish.yml`) builds
+and pushes two images on every push to the branch:
+
+- `ghcr.io/nc1107/house-tracker` — the web app
+- `ghcr.io/nc1107/house-tracker-tools` — migrations / seeding / ingestion jobs
+
+Once that workflow has run at least once (check the repo's **Actions** and **Packages**
+tabs), deploy on the server:
+
+```bash
+git clone https://github.com/NC1107/house-tracker.git
+cd house-tracker
+git checkout claude/housing-price-tracker-ul45rp
+cp .env.example .env                       # defaults work out of the box
+
+# If the GHCR packages are private, authenticate once (or make them public in Packages settings):
+#   echo <GITHUB_PAT_with_read:packages> | docker login ghcr.io -u <your-username> --password-stdin
+
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
+# -> http://<server-ip>:3000
+```
+
+Load data (optional — needs a free FRED key in `.env`):
+
+```bash
+docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run db:migrate
+docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run seed:geo
+docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:fred
+docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:zillow
+```
+
+Pin a specific build with `IMAGE_TAG` in `.env` (e.g. `IMAGE_TAG=sha-abc1234`); defaults to
+`latest`.
+
+## Option B — Build locally with Docker Compose
 
 Prereqs: Docker Engine + the Compose plugin.
 
@@ -58,7 +96,7 @@ Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:
 (The included `.github/workflows/ingest.yml` does the same on GitHub-hosted runners if you
 prefer that instead.)
 
-## Option B — Vercel (managed, no server)
+## Option C — Vercel (managed, no server)
 
 Import the repo in Vercel, attach a Postgres (Vercel Postgres / Neon), set the same env
 vars, and deploy. Run the migrate/seed/ingest commands once locally against that database,

@@ -1,0 +1,31 @@
+name: Ingest housing data
+
+# Heavy bulk ingestion runs here (not Vercel) to avoid serverless timeouts.
+on:
+  schedule:
+    - cron: "0 9 * * *" # daily 09:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+      HUD_TOKEN: ${{ secrets.HUD_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run migrations
+        run: npx drizzle-kit migrate
+      - name: Seed geographies + catalog
+        run: npm run seed:geo
+      - name: Ingest FRED (rates, indices)
+        run: npm run ingest:fred
+      - name: Ingest Zillow (ZHVI, ZORI)
+        run: npm run ingest:zillow

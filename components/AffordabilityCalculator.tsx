@@ -1,0 +1,278 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  maxAffordablePrice,
+  computePiti,
+  computeDti,
+  GUIDELINES,
+  type DownPaymentMode,
+} from "@/lib/affordability";
+import { usd, pct } from "@/lib/format";
+
+type DpKind = "percent" | "amount";
+
+export default function AffordabilityCalculator({
+  defaultRate = 6.8,
+}: {
+  defaultRate?: number;
+}) {
+  const [income, setIncome] = useState(120_000);
+  const [debts, setDebts] = useState(400);
+  const [dpKind, setDpKind] = useState<DpKind>("percent");
+  const [dpPercent, setDpPercent] = useState(20);
+  const [dpAmount, setDpAmount] = useState(80_000);
+  const [rate, setRate] = useState(defaultRate);
+  const [termYears, setTermYears] = useState(30);
+  const [taxRate, setTaxRate] = useState(1.1);
+  const [insRate, setInsRate] = useState(0.5);
+  const [hoa, setHoa] = useState(0);
+  const [guidelineKey, setGuidelineKey] = useState("qm");
+
+  const downPayment: DownPaymentMode =
+    dpKind === "percent"
+      ? { kind: "percent", percent: dpPercent / 100 }
+      : { kind: "amount", amount: dpAmount };
+
+  const guideline = GUIDELINES[guidelineKey];
+
+  const result = useMemo(
+    () =>
+      maxAffordablePrice({
+        grossAnnualIncome: income,
+        monthlyDebts: debts,
+        downPayment,
+        annualRatePct: rate,
+        termMonths: termYears * 12,
+        propertyTaxRate: taxRate / 100,
+        insuranceRate: insRate / 100,
+        monthlyHoa: hoa,
+        guideline,
+      }),
+    [income, debts, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
+  );
+
+  // Rate-scenario sensitivity: how max price moves as rates shift.
+  const scenarios = useMemo(
+    () =>
+      [-1, -0.5, 0, 0.5, 1].map((delta) => {
+        const r = Math.max(0.01, rate + delta);
+        const res = maxAffordablePrice({
+          grossAnnualIncome: income,
+          monthlyDebts: debts,
+          downPayment,
+          annualRatePct: r,
+          termMonths: termYears * 12,
+          propertyTaxRate: taxRate / 100,
+          insuranceRate: insRate / 100,
+          monthlyHoa: hoa,
+          guideline,
+        });
+        return { delta, rate: r, price: res.maxHomePrice, piti: res.piti.total };
+      }),
+    [income, debts, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
+  );
+
+  const p = result.piti;
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+      {/* Inputs */}
+      <div className="card space-y-4">
+        <h2 className="text-lg font-semibold">Your numbers</h2>
+
+        <Field label="Gross annual income">
+          <NumberInput value={income} onChange={setIncome} prefix="$" step={5000} />
+        </Field>
+
+        <Field label="Other monthly debt payments (cars, cards, loans)">
+          <NumberInput value={debts} onChange={setDebts} prefix="$" step={50} />
+        </Field>
+
+        <div>
+          <div className="mb-1 flex items-center justify-between">
+            <span className="label mb-0">Down payment</span>
+            <div className="flex rounded-lg border border-slate-300 text-xs dark:border-slate-700">
+              {(["percent", "amount"] as DpKind[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setDpKind(k)}
+                  className={`px-2 py-1 ${dpKind === k ? "bg-brand-500 text-white" : "text-slate-500"}`}
+                >
+                  {k === "percent" ? "%" : "$"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {dpKind === "percent" ? (
+            <NumberInput value={dpPercent} onChange={setDpPercent} suffix="%" step={1} />
+          ) : (
+            <NumberInput value={dpAmount} onChange={setDpAmount} prefix="$" step={5000} />
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Interest rate">
+            <NumberInput value={rate} onChange={setRate} suffix="%" step={0.125} />
+          </Field>
+          <Field label="Term">
+            <select className="input" value={termYears} onChange={(e) => setTermYears(+e.target.value)}>
+              <option value={30}>30 years</option>
+              <option value={15}>15 years</option>
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Property tax rate">
+            <NumberInput value={taxRate} onChange={setTaxRate} suffix="%" step={0.1} />
+          </Field>
+          <Field label="Insurance rate">
+            <NumberInput value={insRate} onChange={setInsRate} suffix="%" step={0.1} />
+          </Field>
+        </div>
+
+        <Field label="Monthly HOA">
+          <NumberInput value={hoa} onChange={setHoa} prefix="$" step={25} />
+        </Field>
+
+        <Field label="Underwriting guideline">
+          <select className="input" value={guidelineKey} onChange={(e) => setGuidelineKey(e.target.value)}>
+            {Object.values(GUIDELINES).map((g) => (
+              <option key={g.key} value={g.key}>
+                {g.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-slate-400">{guideline.source}</p>
+        </Field>
+      </div>
+
+      {/* Results */}
+      <div className="space-y-6">
+        <div className="card">
+          <p className="text-sm text-slate-500">You can likely afford a home up to</p>
+          <p className="mt-1 text-4xl font-bold text-brand-600 dark:text-brand-500">
+            {usd(result.maxHomePrice)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
+            <span>Down payment: {usd(result.downPayment)}</span>
+            <span>Loan: {usd(p.loanAmount)}</span>
+            <span>LTV: {pct(p.ltv)}</span>
+            {result.isJumbo && (
+              <span className="font-medium text-amber-600">⚠ Jumbo loan (above conforming limit)</span>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="card">
+            <h3 className="mb-3 font-semibold">Monthly payment (PITI)</h3>
+            <Row label="Principal & interest" value={usd(p.principalAndInterest)} />
+            <Row label="Property tax" value={usd(p.propertyTax)} />
+            <Row label="Homeowners insurance" value={usd(p.insurance)} />
+            {p.mortgageInsurance > 0 && (
+              <Row label={guideline.mortgageInsurance === "mip" ? "FHA MIP" : "PMI"} value={usd(p.mortgageInsurance)} />
+            )}
+            {p.hoa > 0 && <Row label="HOA" value={usd(p.hoa)} />}
+            <div className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-700">
+              <Row label="Total / month" value={usd(p.total)} bold />
+            </div>
+          </div>
+
+          <div className="card">
+            <h3 className="mb-3 font-semibold">Qualification</h3>
+            <Row
+              label={`Front-end DTI${guideline.frontEndLimit ? ` (max ${pct(guideline.frontEndLimit, 0)})` : ""}`}
+              value={guideline.frontEndLimit ? pct(result.dti.frontEnd) : "n/a"}
+            />
+            <Row
+              label={`Back-end DTI (max ${pct(guideline.backEndLimit, 0)})`}
+              value={pct(result.dti.backEnd)}
+            />
+            <p className="mt-3 text-xs text-slate-400">
+              The max price is the point where your binding ratio hits its limit. Lower your
+              debts or raise your down payment to push it higher.
+            </p>
+          </div>
+        </div>
+
+        <div className="card">
+          <h3 className="mb-3 font-semibold">Rate sensitivity</h3>
+          <p className="mb-3 text-xs text-slate-400">
+            What a rate change does to your buying power — the buyer&apos;s edge when timing a purchase.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-slate-400">
+                  <th className="py-1 pr-4 font-medium">Rate</th>
+                  <th className="py-1 pr-4 font-medium">Max price</th>
+                  <th className="py-1 font-medium">Monthly PITI</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scenarios.map((s) => (
+                  <tr
+                    key={s.delta}
+                    className={s.delta === 0 ? "font-semibold text-brand-600 dark:text-brand-500" : ""}
+                  >
+                    <td className="py-1 pr-4">{s.rate.toFixed(3)}%</td>
+                    <td className="py-1 pr-4">{usd(s.price)}</td>
+                    <td className="py-1">{usd(s.piti)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function NumberInput({
+  value,
+  onChange,
+  prefix,
+  suffix,
+  step = 1,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  prefix?: string;
+  suffix?: string;
+  step?: number;
+}) {
+  return (
+    <div className="relative">
+      {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{prefix}</span>}
+      <input
+        type="number"
+        className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
+        value={Number.isFinite(value) ? value : 0}
+        step={step}
+        onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
+      />
+      {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{suffix}</span>}
+    </div>
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className={`flex items-center justify-between py-0.5 ${bold ? "text-base font-semibold" : "text-sm"}`}>
+      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}

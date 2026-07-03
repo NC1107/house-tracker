@@ -160,7 +160,7 @@ export default function AffordabilityCalculator({
             <span>Loan: {usd(p.loanAmount)}</span>
             <span>LTV: {pct(p.ltv)}</span>
             {result.isJumbo && (
-              <span className="font-medium text-amber-600">⚠ Jumbo loan (above conforming limit)</span>
+              <span className="font-medium text-amber-600">Jumbo loan (above conforming limit)</span>
             )}
           </div>
         </div>

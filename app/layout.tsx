@@ -28,8 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-screen">
           <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
             <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              <Link href="/" className="flex items-center gap-2 font-semibold">
-                <span className="text-xl">🏠</span> House Tracker
+              <Link href="/" className="font-semibold">
+                House Tracker
               </Link>
               <nav className="flex gap-1 text-sm">
                 {nav.map((n) => (

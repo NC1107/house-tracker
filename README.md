@@ -8,16 +8,16 @@ on free public data.
 
 Phase 1 foundation:
 
-- ✅ **Bank-grade affordability engine** (`lib/affordability.ts`) — amortization, full PITI,
+- **Bank-grade affordability engine** (`lib/affordability.ts`) — amortization, full PITI,
   PMI/FHA-MIP, front/back-end DTI, Conventional / QM / FHA guideline sets, conforming-limit
   (jumbo) flag, and a reverse max-price solver. Validated in `lib/affordability.test.ts`
   against authoritative amortization vectors. Run `npm test`.
-- ✅ **Working affordability calculator UI** (`/affordability`) — no database required.
-- ✅ **Data model** (`db/schema.ts`) — unified `metric_series` for all time series + a
+- **Working affordability calculator UI** (`/affordability`) — no database required.
+- **Data model** (`db/schema.ts`) — unified `metric_series` for all time series + a
   geography spine, mortgage rates, users, watchlist, and a generic alert-rule engine.
-- ✅ **Ingestion** (`scripts/`, `lib/sources/`) — FRED (rates, Case-Shiller) and Zillow
+- **Ingestion** (`scripts/`, `lib/sources/`) — FRED (rates, Case-Shiller) and Zillow
   (ZHVI, ZORI) with a wide→long normalizer; scheduled via GitHub Actions.
-- ✅ **Dashboard pages** — Overview, Region Explorer, Affordability, Alerts (planned surface).
+- **Dashboard pages** — Overview, Region Explorer, Affordability, Alerts (planned surface).
 
 See `PLAN` in the session for the full roadmap (rent-vs-buy, market heat, deal signals,
 choropleth, notifications, and deferred Phase 2 listing search via RentCast).

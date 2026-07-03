@@ -1,0 +1,63 @@
+# House Tracker — self-hosted stack (web + Postgres).
+#
+# Quick start (just see the site; affordability calculator works with no data):
+#   docker compose up -d --build web
+#   open http://<server>:3000
+#
+# Full data (optional): set FRED_API_KEY etc. in .env, then:
+#   docker compose --profile tools run --rm tools npm run db:migrate
+#   docker compose --profile tools run --rm tools npm run seed:geo
+#   docker compose --profile tools run --rm tools npm run ingest:fred
+#   docker compose --profile tools run --rm tools npm run ingest:zillow
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-housetracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-housetracker}
+      POSTGRES_DB: ${POSTGRES_DB:-housetracker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-housetracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      # Defaults to the internal db; override by setting DATABASE_URL in .env.
+      DATABASE_URL: ${DATABASE_URL:-postgres://housetracker:housetracker@db:5432/housetracker}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # One-shot utility container for migrations / seeding / ingestion.
+  # Built from the builder stage so it has drizzle-kit + tsx + all source baked in.
+  tools:
+    build:
+      context: .
+      target: builder
+    profiles: ["tools"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://housetracker:housetracker@db:5432/housetracker}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

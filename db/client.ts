@@ -3,7 +3,7 @@ import postgres from "postgres";
 import * as schema from "./schema";
 
 /**
- * Postgres (Neon) client. A single connection is reused across the serverless
+ * Postgres client. A single connection is reused across the serverless
  * function's lifetime. Ingestion scripts import this too.
  */
 const connectionString = process.env.DATABASE_URL;

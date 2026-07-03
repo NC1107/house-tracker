@@ -1,8 +1,8 @@
 # Deploying House Tracker
 
-Three paths. For your own server, the simplest is **Option A** (pull the prebuilt image
-from GHCR). Option B builds locally instead. Both run the app + Postgres together and keep
-the database local.
+Fully self-hosted — the app and its Postgres run together in Docker on your own server, no
+external database. Two paths: **Option A** pulls the prebuilt image from GHCR (simplest);
+**Option B** builds it locally. Both keep the database on your box.
 
 ## Option A — Prebuilt image from GHCR (no local build)
 
@@ -96,11 +96,8 @@ Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:
 (The included `.github/workflows/ingest.yml` does the same on GitHub-hosted runners if you
 prefer that instead.)
 
-## Option C — Vercel (managed, no server)
-
-Import the repo in Vercel, attach a Postgres (Vercel Postgres / Neon), set the same env
-vars, and deploy. Run the migrate/seed/ingest commands once locally against that database,
-or let the GitHub Action populate it. Vercel is simplest but keeps the DB off your box.
+This stack is fully self-hosted: the app and its Postgres both run in Docker on your box,
+with no external/managed database. The database lives in the `pgdata` volume on the host.
 
 ---
 

@@ -33,7 +33,7 @@ npm test             # run the affordability validation suite
 
 ### With data (optional)
 
-1. Copy `.env.example` → `.env` and fill in `DATABASE_URL` (Neon) plus free API keys
+1. Copy `.env.example` → `.env` and set `DATABASE_URL` (a local Postgres) plus free API keys
    (`FRED_API_KEY`, `CENSUS_API_KEY`, `HUD_TOKEN`).
 2. Create tables and load data:
 

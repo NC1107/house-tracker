@@ -38,15 +38,19 @@ export const METRIC_CATALOG: MetricDef[] = [
   { metricKey: "treasury_10yr", label: "10-Year Treasury Yield", unit: "percent", category: "rate", source: "fred" },
 
   // Income / affordability inputs
+  { metricKey: "median_sale_price_us", label: "US Median Sale Price", unit: "usd", category: "price", source: "fred", description: "Median sales price of houses sold (MSPUS), quarterly." },
+  { metricKey: "real_median_income", label: "Real Median Household Income", unit: "usd", category: "income", source: "fred", description: "MEHOINUSA672N, annual." },
   { metricKey: "median_household_income", label: "Median Household Income", unit: "usd", category: "income", source: "census" },
   { metricKey: "median_home_value_acs", label: "Median Home Value (ACS)", unit: "usd", category: "income", source: "census" },
   { metricKey: "effective_property_tax_rate", label: "Effective Property Tax Rate", unit: "percent", category: "income", source: "census", description: "Median real-estate taxes / median home value (annual)." },
 ];
 
 /** FRED series id -> our metric_key, for the national/rate ingestion. */
-export const FRED_SERIES: { seriesId: string; metricKey: string; freq: "daily" | "weekly" | "monthly" }[] = [
+export const FRED_SERIES: { seriesId: string; metricKey: string; freq: import("@/lib/types").MetricFreq }[] = [
   { seriesId: "MORTGAGE30US", metricKey: "mortgage_30yr", freq: "weekly" },
   { seriesId: "MORTGAGE15US", metricKey: "mortgage_15yr", freq: "weekly" },
   { seriesId: "DGS10", metricKey: "treasury_10yr", freq: "daily" },
   { seriesId: "CSUSHPINSA", metricKey: "case_shiller_national", freq: "monthly" },
+  { seriesId: "MSPUS", metricKey: "median_sale_price_us", freq: "quarterly" },
+  { seriesId: "MEHOINUSA672N", metricKey: "real_median_income", freq: "annual" },
 ];

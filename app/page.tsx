@@ -3,20 +3,27 @@ import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/components/ui";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
+import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
 import { usd, pct } from "@/lib/format";
 import { CHART } from "@/lib/chartTheme";
 
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [rate, rates, caseShiller] = await Promise.all([
+  const [rate, rates, caseShiller, medianPrice, income] = await Promise.all([
     latestMortgageRate("30yr"),
     rateHistory("30yr"),
     nationalSeries("case_shiller_national"),
+    nationalSeries("median_sale_price_us"),
+    nationalSeries("real_median_income"),
   ]);
 
   const currentRate = rate?.rate ?? 6.8;
   const snap = buyerSnapshot(currentRate);
+
+  // Derived buying-power trends (the "true cost" story buyers care about most).
+  const paymentTrend = paymentToBuySeries(medianPrice, rates);
+  const p2iTrend = priceToIncomeSeries(medianPrice, income);
 
   const burdenTone = snap.housingBurden > 0.36 ? "critical" : snap.housingBurden > 0.3 ? "warning" : "good";
   const p2iTone = snap.priceToIncome > 5 ? "critical" : snap.priceToIncome > 4 ? "warning" : "good";
@@ -82,6 +89,33 @@ export default async function OverviewPage() {
           <Stat label="Buying signal" value={rate ? (rate.rate < 6 ? "Favorable" : "Watch") : "Watch"} sub="rate-based, illustrative" tone={rate && rate.rate < 6 ? "good" : "neutral"} />
         </div>
       </div>
+
+      {/* Buying-power over time — the "true cost" story */}
+      {(paymentTrend.length > 0 || p2iTrend.length > 0) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {paymentTrend.length > 0 && (
+            <Card>
+              <SectionTitle hint="median price × rate of the day">
+                Monthly payment to buy the typical US home
+              </SectionTitle>
+              <TimeSeriesChart data={paymentTrend} format="usd" color={CHART.series2} />
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                Full PITI at 15% down. Shows how the rate shock reshaped affordability even when
+                prices moved little.
+              </p>
+            </Card>
+          )}
+          {p2iTrend.length > 0 && (
+            <Card>
+              <SectionTitle hint="median price ÷ median income">Home price-to-income ratio</SectionTitle>
+              <TimeSeriesChart data={p2iTrend} format="number" color={CHART.series1} />
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                A valuation gauge — ~3–4× is historically normal, 5×+ is stretched.
+              </p>
+            </Card>
+          )}
+        </div>
+      )}
 
       {!dbConfigured() || rates.length === 0 ? (
         <EmptyNote>

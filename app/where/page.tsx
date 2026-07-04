@@ -1,5 +1,6 @@
 import { PageHeader, Card, SectionTitle, EmptyNote } from "@/components/ui";
-import StateTileMap, { type StateDatum } from "@/components/StateTileMap";
+import ChoroplethMap, { type StateDatum } from "@/components/ChoroplethMap";
+import { statePaths } from "@/lib/geo/usStates";
 import { latestMetricByState, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { computeStateAffordability, affordabilityColor } from "@/lib/stateAffordability";
 import { NATIONAL } from "@/lib/reference";
@@ -14,6 +15,7 @@ export default async function WherePage() {
   ]);
   const rate = rateRow?.rate ?? 6.8;
   const income = NATIONAL.medianHouseholdIncome;
+  const geo = statePaths();
 
   const data: StateDatum[] = states
     .map((s) => {
@@ -45,7 +47,7 @@ export default async function WherePage() {
                 {affordableCount} of {data.length} states affordable to the median household
               </span>
             </div>
-            <StateTileMap data={data} />
+            <ChoroplethMap paths={geo.paths} width={geo.width} height={geo.height} data={data} />
           </Card>
 
           <Card>

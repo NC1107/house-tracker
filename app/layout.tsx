@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
+import ThemeToggle from "@/components/ThemeToggle";
+
+// Set the theme before paint to avoid a flash of the wrong mode.
+const themeInit = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
 
 export const metadata: Metadata = {
   title: "House Tracker",
@@ -30,14 +34,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <div className="flex min-h-screen flex-col">
           <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/85 backdrop-blur">
             <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-6">
-              <Link href="/" className="flex items-center gap-2 whitespace-nowrap font-bold tracking-tight">
-                <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--brand)] text-sm text-white">H</span>
-                House Tracker
-              </Link>
-              <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex items-center justify-between">
+                <Link href="/" className="flex items-center gap-2 whitespace-nowrap font-bold tracking-tight">
+                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--brand)] text-sm text-white">H</span>
+                  House Tracker
+                </Link>
+                <ThemeToggle className="sm:hidden" />
+              </div>
+              <nav className="-mx-4 flex flex-1 gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {nav.map((n) => (
                   <Link
                     key={n.href}
@@ -48,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   </Link>
                 ))}
               </nav>
+              <ThemeToggle className="hidden sm:inline-flex" />
             </div>
           </header>
 

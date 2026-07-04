@@ -101,6 +101,24 @@ export async function metricYoY(geographyId: number, metricKey: string): Promise
   return (latest.value - prior.value) / prior.value;
 }
 
+/** Latest value of a metric for every state, keyed for map/ranking views. */
+export async function latestMetricByState(
+  metricKey: string,
+): Promise<{ stateCode: string; name: string; value: number }[]> {
+  return safe(async () => {
+    const db = getDb();
+    const rows = await db.execute(sql`
+      select distinct on (g.id) g.state_code as "stateCode", g.name as name, ms.value as value
+      from geographies g
+      join metric_series ms on ms.geography_id = g.id
+      where g.level = 'state' and ms.metric_key = ${metricKey}
+      order by g.id, ms.period_date desc
+    `);
+    return (rows as unknown as { stateCode: string; name: string; value: number }[])
+      .filter((r) => r.stateCode);
+  }, []);
+}
+
 export async function statesList() {
   return safe(async () => {
     const db = getDb();

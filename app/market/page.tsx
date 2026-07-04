@@ -1,5 +1,5 @@
 import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, latestMetric, metricYoY, dbConfigured } from "@/lib/queries";
+import { statesList, statesWithMarketData, latestMetric, metricYoY, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 import { Term } from "@/components/Term";
 
@@ -25,9 +25,13 @@ export default async function MarketPage({
   searchParams: Promise<{ geo?: string }>;
 }) {
   const { geo } = await searchParams;
-  const states = await statesList();
-  const selectedId = geo ? Number(geo) : states[0]?.id;
+  const [allStates, withData] = await Promise.all([statesList(), statesWithMarketData()]);
+  // Only offer states that actually have Redfin metrics, so nobody lands on an empty view.
+  const states = withData.size > 0 ? allStates.filter((s) => withData.has(s.id)) : allStates;
+  const requested = geo ? Number(geo) : undefined;
+  const selectedId = requested && states.some((s) => s.id === requested) ? requested : states[0]?.id;
   const selected = states.find((s) => s.id === selectedId);
+  const marketDataLoaded = withData.size > 0;
 
   let heat = null as ReturnType<typeof marketHeat> | null;
   let through: string | undefined;
@@ -60,6 +64,14 @@ export default async function MarketPage({
 
       {!dbConfigured() || states.length === 0 ? (
         <EmptyNote>No geographies seeded yet. Run the Redfin ingestion to populate market metrics.</EmptyNote>
+      ) : !marketDataLoaded ? (
+        <EmptyNote>
+          <strong>Market data isn&apos;t loaded yet.</strong> This page needs Redfin metrics
+          (inventory, days-on-market, price cuts, sale-to-list). Run{" "}
+          <code>npm run ingest:redfin</code> once — it covers every state in a single file, so all
+          states light up together. On the prebuilt Docker image, pull the latest image first, then
+          run the ingest command shown in <code>DEPLOY.md</code>.
+        </EmptyNote>
       ) : (
         <>
           <form className="flex flex-wrap items-center gap-3">

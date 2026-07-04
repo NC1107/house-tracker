@@ -3,6 +3,8 @@ import Link from "next/link";
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
 import NavLinks from "@/components/NavLinks";
+import ProfileControls from "@/components/ProfileControls";
+import { getProfile } from "@/lib/profile";
 
 // Set the theme before paint to avoid a flash of the wrong mode.
 const themeInit = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
@@ -19,7 +21,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const profile = await getProfile();
   return (
     <html lang="en">
       <body>
@@ -39,7 +42,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </header>
 
-          <main className="mx-auto w-full max-w-6xl flex-1 overflow-x-hidden px-4 py-6 sm:py-8">{children}</main>
+          <main className="mx-auto w-full max-w-6xl flex-1 overflow-x-hidden px-4 py-6 sm:py-8">
+            <div className="mb-6">
+              <ProfileControls
+                income={profile.income}
+                downPct={profile.downPct}
+                monthlyDebts={profile.monthlyDebts}
+                isCustom={profile.isCustom}
+              />
+            </div>
+            {children}
+          </main>
 
           <footer className="mx-auto w-full max-w-6xl px-4 py-8 text-xs text-[var(--muted)]">
             Data: Zillow Research, Redfin, Realtor.com, FRED, US Census, HUD. National

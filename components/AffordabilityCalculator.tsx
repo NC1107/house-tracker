@@ -9,6 +9,7 @@ import {
 } from "@/lib/affordability";
 import { usd, pct } from "@/lib/format";
 import { Term } from "@/components/Term";
+import NumberInput from "@/components/NumberField";
 
 type DpKind = "percent" | "amount";
 
@@ -256,35 +257,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="label">{label}</span>
       {children}
     </label>
-  );
-}
-
-function NumberInput({
-  value,
-  onChange,
-  prefix,
-  suffix,
-  step = 1,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  prefix?: string;
-  suffix?: string;
-  step?: number;
-}) {
-  return (
-    <div className="relative">
-      {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{prefix}</span>}
-      <input
-        type="number"
-        min={0}
-        className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
-        value={Number.isFinite(value) ? value : 0}
-        step={step}
-        onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-      />
-      {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{suffix}</span>}
-    </div>
   );
 }
 

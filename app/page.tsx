@@ -6,7 +6,6 @@ import { Term } from "@/components/Term";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
 import { getProfile } from "@/lib/profile";
-import ProfileForm from "@/components/ProfileForm";
 import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
 import { usd, pct } from "@/lib/format";
 import { CHART } from "@/lib/chartTheme";
@@ -43,8 +42,6 @@ export default async function OverviewPage() {
         title="Can we afford a home?"
         subtitle="Prices, rates, and what they mean for buying — set your numbers to make it about you."
       />
-
-      <ProfileForm income={profile.income} downPct={profile.downPct} monthlyDebts={profile.monthlyDebts} isCustom={profile.isCustom} />
 
       {/* Hero: the household's buying power */}
       <Card className="bg-gradient-to-br from-[var(--surface)] to-[var(--surface-2)]">

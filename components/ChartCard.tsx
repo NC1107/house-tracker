@@ -42,19 +42,20 @@ function directionBadge(direction: BuyerDirection, note?: string) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-xs text-[var(--text-2)]">
         <span aria-hidden>ℹ</span>
-        {note ?? "Context — no single “good” direction"}
+        {note ?? "Depends"}
       </span>
     );
   }
   const arrow = direction === "lower" ? "↓" : "↑";
-  const text = note ?? (direction === "lower" ? "Lower is better for buyers" : "Higher is better for buyers");
+  const text = note ?? (direction === "lower" ? "Lower is better" : "Higher is better");
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
       style={{ backgroundColor: "color-mix(in srgb, var(--good) 14%, transparent)", color: "var(--good-ink)" }}
+      title="For buyers"
     >
       <span aria-hidden className="text-sm leading-none">{arrow}</span>
-      For buyers: {text}
+      {text}
     </span>
   );
 }

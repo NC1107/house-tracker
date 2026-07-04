@@ -155,3 +155,18 @@ export async function statesList() {
       .orderBy(geographies.name);
   }, [] as { id: number; code: string; name: string; stateCode: string | null }[]);
 }
+
+/** State geography ids that have at least one Redfin market-heat metric ingested. */
+export async function statesWithMarketData(): Promise<Set<number>> {
+  return safe(async () => {
+    const db = getDb();
+    const rows = await db.execute(sql`
+      select distinct g.id as id
+      from geographies g
+      join metric_series ms on ms.geography_id = g.id
+      where g.level = 'state'
+        and ms.metric_key in ('months_of_supply', 'days_on_market', 'price_drops_share', 'sale_to_list', 'inventory')
+    `);
+    return new Set((rows as unknown as { id: number }[]).map((r) => Number(r.id)));
+  }, new Set<number>());
+}

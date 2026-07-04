@@ -15,6 +15,7 @@ import {
 import { rentVsBuy } from "@/lib/rentvsbuy";
 import { usd } from "@/lib/format";
 import { CHART } from "@/lib/chartTheme";
+import NumberField from "@/components/NumberField";
 
 export default function RentVsBuy({ defaultRate = 6.8, defaultRent = 2_200 }: { defaultRate?: number; defaultRent?: number }) {
   const [homePrice, setHomePrice] = useState(400_000);
@@ -133,18 +134,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Num({ v, set, prefix, suffix, step = 1 }: { v: number; set: (n: number) => void; prefix?: string; suffix?: string; step?: number }) {
-  return (
-    <div className="relative">
-      {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{prefix}</span>}
-      <input
-        type="number"
-        min={0}
-        className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
-        value={Number.isFinite(v) ? v : 0}
-        step={step}
-        onChange={(e) => set(e.target.value === "" ? 0 : Number(e.target.value))}
-      />
-      {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{suffix}</span>}
-    </div>
-  );
+  return <NumberField value={v} onChange={set} prefix={prefix} suffix={suffix} step={step} />;
 }

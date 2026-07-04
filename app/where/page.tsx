@@ -5,7 +5,6 @@ import { latestMetricByState, latestMortgageRate, dbConfigured } from "@/lib/que
 import { computeStateAffordability, affordabilityColor } from "@/lib/stateAffordability";
 import { statePropertyTaxRate, stateInsuranceRate } from "@/lib/geo/stateCosts";
 import { getProfile } from "@/lib/profile";
-import ProfileForm from "@/components/ProfileForm";
 import { usd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -41,9 +40,6 @@ export default async function WherePage() {
         subtitle={`Every state colored by how its typical home compares to ${profile.isCustom ? "your" : "the median US"} household income ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`}
         action={<Freshness date={states.map((s) => s.date).sort().at(-1)} label="Home values through" />}
       />
-
-      <ProfileForm income={profile.income} downPct={profile.downPct} monthlyDebts={profile.monthlyDebts} isCustom={profile.isCustom} />
-
 
       {!dbConfigured() || data.length === 0 ? (
         <EmptyNote>

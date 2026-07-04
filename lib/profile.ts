@@ -1,7 +1,7 @@
 /**
  * Buyer profile — the user's own numbers, stored in a cookie so server components can
  * personalize (recolor the map, personalize the Overview, prefill calculators) without auth.
- * The client ProfileForm writes the cookie and refreshes.
+ * The client ProfileControls writes the cookie and refreshes.
  */
 import { cookies } from "next/headers";
 import { DEFAULT_PROFILE, PROFILE_COOKIE, type BuyerProfile } from "@/lib/profile-shared";

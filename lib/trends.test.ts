@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { asOf, paymentToBuySeries, priceToIncomeSeries, rateSpreadSeries } from "./trends";
+import { asOf, paymentToBuySeries, priceToIncomeSeries, rateSpreadSeries, housingBurdenSeries, buyingPowerSeries, realIndexSeries } from "./trends";
 import { costOfWaiting } from "./costofwaiting";
 
 describe("asOf", () => {
@@ -55,6 +55,42 @@ describe("rateSpreadSeries", () => {
       [{ date: "2024-01-01", value: 4.0 }],
     );
     expect(s[0].value).toBeCloseTo(2.8, 2);
+  });
+});
+
+describe("housingBurdenSeries", () => {
+  it("is higher when rates are higher (same price)", () => {
+    const prices = [{ date: "2021-07-01", value: 400_000 }, { date: "2023-07-01", value: 400_000 }];
+    const rates = [{ date: "2021-01-01", value: 3.0 }, { date: "2023-01-01", value: 7.0 }];
+    const incomes = [{ date: "2020-01-01", value: 80_000 }];
+    const s = housingBurdenSeries(prices, rates, incomes);
+    expect(s[1].value).toBeGreaterThan(s[0].value);
+  });
+});
+
+describe("buyingPowerSeries", () => {
+  it("falls as rates rise (same income)", () => {
+    const incomes = [{ date: "2020-01-01", value: 100_000 }];
+    const rates = [{ date: "2021-01-01", value: 3.0 }, { date: "2023-02-01", value: 7.5 }];
+    const s = buyingPowerSeries(rates, incomes);
+    expect(s).toHaveLength(2);
+    expect(s[1].value).toBeLessThan(s[0].value);
+  });
+});
+
+describe("realIndexSeries", () => {
+  it("is flat when nominal prices merely track inflation", () => {
+    const nominal = [{ date: "2020-01-01", value: 100 }, { date: "2021-01-01", value: 110 }];
+    const cpi = [{ date: "2020-01-01", value: 100 }, { date: "2021-01-01", value: 110 }];
+    const s = realIndexSeries(nominal, cpi);
+    expect(s[0].value).toBeCloseTo(100, 1);
+    expect(s[1].value).toBeCloseTo(100, 1); // real growth ~0
+  });
+  it("rises when prices outpace inflation", () => {
+    const nominal = [{ date: "2020-01-01", value: 100 }, { date: "2021-01-01", value: 130 }];
+    const cpi = [{ date: "2020-01-01", value: 100 }, { date: "2021-01-01", value: 105 }];
+    const s = realIndexSeries(nominal, cpi);
+    expect(s[1].value).toBeGreaterThan(115);
   });
 });
 

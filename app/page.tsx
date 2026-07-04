@@ -1,6 +1,7 @@
 import Link from "next/link";
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/components/ui";
+import { ChartCard } from "@/components/ChartCard";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
 import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
@@ -92,28 +93,30 @@ export default async function OverviewPage() {
 
       {/* Buying-power over time — the "true cost" story */}
       {(paymentTrend.length > 0 || p2iTrend.length > 0) && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {paymentTrend.length > 0 && (
-            <Card>
-              <SectionTitle hint="median price × rate of the day">
-                Monthly payment to buy the typical US home
-              </SectionTitle>
-              <TimeSeriesChart data={paymentTrend} format="usd" color={CHART.series2} />
-              <p className="mt-2 text-xs text-[var(--muted)]">
-                Full PITI at 15% down. Shows how the rate shock reshaped affordability even when
-                prices moved little.
-              </p>
-            </Card>
-          )}
-          {p2iTrend.length > 0 && (
-            <Card>
-              <SectionTitle hint="median price ÷ median income">Home price-to-income ratio</SectionTitle>
-              <TimeSeriesChart data={p2iTrend} format="number" color={CHART.series1} />
-              <p className="mt-2 text-xs text-[var(--muted)]">
-                A valuation gauge — ~3–4× is historically normal, 5×+ is stretched.
-              </p>
-            </Card>
-          )}
+        <div>
+          <SectionTitle hint="see the Trends page for more">Buying power over time</SectionTitle>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {paymentTrend.length > 0 && (
+              <ChartCard
+                title="Monthly payment to buy the typical US home"
+                source="median price × rate"
+                direction="lower"
+                whatFor="The real monthly cost of the median home (full PITI, 15% down). The 2021→2023 spike is the rate shock — same house, far bigger payment."
+              >
+                <TimeSeriesChart data={paymentTrend} format="usd" color={CHART.series2} />
+              </ChartCard>
+            )}
+            {p2iTrend.length > 0 && (
+              <ChartCard
+                title="Home price-to-income ratio"
+                source="price ÷ income"
+                direction="lower"
+                whatFor="A valuation gauge — ~3–4× is historically normal, 5×+ is stretched."
+              >
+                <TimeSeriesChart data={p2iTrend} format="number" color={CHART.series1} />
+              </ChartCard>
+            )}
+          </div>
         </div>
       )}
 

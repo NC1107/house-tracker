@@ -16,6 +16,7 @@ export const viewport: Viewport = {
 
 const nav = [
   { href: "/", label: "Overview" },
+  { href: "/trends", label: "Trends" },
   { href: "/explore", label: "Region Explorer" },
   { href: "/affordability", label: "Affordability" },
   { href: "/rent-vs-buy", label: "Rent vs. Buy" },

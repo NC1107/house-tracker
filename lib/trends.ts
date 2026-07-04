@@ -2,7 +2,7 @@
  * Derived time-series for buyer-facing trend charts. Pure functions over already-ingested
  * national series (FRED median sale price + rate + income). Unit-tested in trends.test.ts.
  */
-import { computePiti, GUIDELINES } from "@/lib/affordability";
+import { computePiti, maxAffordablePrice, GUIDELINES } from "@/lib/affordability";
 import type { SeriesPoint } from "@/lib/types";
 
 /** Latest source value dated on or before `date` (both series assumed ascending by date). */
@@ -66,4 +66,64 @@ export function rateSpreadSeries(mortgage: SeriesPoint[], treasury: SeriesPoint[
     out.push({ date: m.date, value: +(m.value - t).toFixed(2) });
   }
   return out;
+}
+
+/**
+ * Housing-cost burden over time = monthly payment on the median home ÷ median monthly
+ * income, as a percent. The classic "is a normal household stretched?" gauge — lower is
+ * better for buyers (>30% is considered cost-burdened).
+ */
+export function housingBurdenSeries(prices: SeriesPoint[], rates: SeriesPoint[], incomes: SeriesPoint[]): SeriesPoint[] {
+  const payments = paymentToBuySeries(prices, rates);
+  const out: SeriesPoint[] = [];
+  for (const p of payments) {
+    const income = asOf(p.date, incomes);
+    if (income === null || income === 0) continue;
+    out.push({ date: p.date, value: +((p.value / (income / 12)) * 100).toFixed(1) });
+  }
+  return out;
+}
+
+/**
+ * Buying power over time = the max home price the median household qualifies for at each
+ * date's mortgage rate. Higher is better for buyers — it shows how the rate shock shrank
+ * how much house the same income can buy.
+ */
+export function buyingPowerSeries(rates: SeriesPoint[], incomes: SeriesPoint[], downPct = 0.15): SeriesPoint[] {
+  const out: SeriesPoint[] = [];
+  // Downsample to one point per month to keep the solve light.
+  let lastMonth = "";
+  for (const r of rates) {
+    const ym = r.date.slice(0, 7);
+    if (ym === lastMonth) continue;
+    lastMonth = ym;
+    const income = asOf(r.date, incomes);
+    if (income === null) continue;
+    const aff = maxAffordablePrice({
+      grossAnnualIncome: income,
+      monthlyDebts: 0,
+      downPayment: { kind: "percent", percent: downPct },
+      annualRatePct: r.value,
+      guideline: GUIDELINES.qm,
+    });
+    out.push({ date: r.date, value: Math.round(aff.maxHomePrice) });
+  }
+  return out;
+}
+
+/**
+ * Inflation-adjusted ("real") index: deflate a nominal series by CPI and rebase to 100 at
+ * the first point, so the line shows appreciation *above inflation* — flat means prices
+ * merely kept pace with the cost of living.
+ */
+export function realIndexSeries(nominal: SeriesPoint[], cpi: SeriesPoint[]): SeriesPoint[] {
+  const deflated: SeriesPoint[] = [];
+  for (const n of nominal) {
+    const c = asOf(n.date, cpi);
+    if (c === null || c === 0) continue;
+    deflated.push({ date: n.date, value: n.value / c });
+  }
+  if (deflated.length === 0) return [];
+  const base = deflated[0].value;
+  return deflated.map((d) => ({ date: d.date, value: +((d.value / base) * 100).toFixed(1) }));
 }

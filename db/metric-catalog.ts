@@ -39,6 +39,8 @@ export const METRIC_CATALOG: MetricDef[] = [
 
   // Income / affordability inputs
   { metricKey: "median_sale_price_us", label: "US Median Sale Price", unit: "usd", category: "price", source: "fred", description: "Median sales price of houses sold (MSPUS), quarterly." },
+  { metricKey: "cpi", label: "Consumer Price Index", unit: "index", category: "price", source: "fred", description: "CPIAUCSL — for inflation-adjusting prices." },
+  { metricKey: "months_supply_new", label: "Monthly Supply of New Homes", unit: "months", category: "market", source: "fred", description: "MSACSR — how many months to sell current for-sale inventory." },
   { metricKey: "real_median_income", label: "Real Median Household Income", unit: "usd", category: "income", source: "fred", description: "MEHOINUSA672N, annual." },
   { metricKey: "median_household_income", label: "Median Household Income", unit: "usd", category: "income", source: "census" },
   { metricKey: "median_home_value_acs", label: "Median Home Value (ACS)", unit: "usd", category: "income", source: "census" },
@@ -53,4 +55,6 @@ export const FRED_SERIES: { seriesId: string; metricKey: string; freq: import("@
   { seriesId: "CSUSHPINSA", metricKey: "case_shiller_national", freq: "monthly" },
   { seriesId: "MSPUS", metricKey: "median_sale_price_us", freq: "quarterly" },
   { seriesId: "MEHOINUSA672N", metricKey: "real_median_income", freq: "annual" },
+  { seriesId: "CPIAUCSL", metricKey: "cpi", freq: "monthly" },
+  { seriesId: "MSACSR", metricKey: "months_supply_new", freq: "monthly" },
 ];

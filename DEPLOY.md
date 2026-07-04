@@ -93,6 +93,12 @@ Put it behind a reverse proxy (Caddy/nginx/Traefik) for TLS + a domain.
 to any network, and don't publish Postgres's 5432 port publicly (the compose files keep it
 on the internal Docker network by default).
 
+### Email alerts (optional)
+
+Set `RESEND_API_KEY` (free at resend.com) and `ALERT_EMAIL` (your address) in `.env`, add
+rules on the **Alerts** page, and the daily job (`npm run alerts:run`, already wired into the
+ingest workflow / crontab) emails you when a rule fires. Use "Send test email" to verify.
+
 ### Keeping data fresh
 
 Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:

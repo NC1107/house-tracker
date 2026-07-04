@@ -18,6 +18,9 @@ jobs:
       FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
       CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
       HUD_TOKEN: ${{ secrets.HUD_TOKEN }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      ALERT_FROM: ${{ secrets.ALERT_FROM }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,6 +38,9 @@ jobs:
         run: npm run ingest:zillow
       - name: Ingest Redfin (market metrics)
         run: npm run ingest:redfin
+
+      - name: Evaluate alerts and email if any fired
+        run: npm run alerts:run
 
       - name: Open an issue if ingestion failed
         if: failure()

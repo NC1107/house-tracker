@@ -7,7 +7,6 @@ import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
 import { getProfile } from "@/lib/profile";
 import ProfileForm from "@/components/ProfileForm";
-import ReadinessChecklist from "@/components/ReadinessChecklist";
 import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
 import { usd, pct } from "@/lib/format";
 import { CHART } from "@/lib/chartTheme";
@@ -163,8 +162,6 @@ export default async function OverviewPage() {
           </Card>
         </div>
       )}
-
-      <ReadinessChecklist />
 
       <p className="text-xs text-[var(--muted)]">{NATIONAL.sources}</p>
     </div>

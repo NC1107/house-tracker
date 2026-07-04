@@ -120,6 +120,19 @@ export async function latestMetricByState(
   }, []);
 }
 
+export async function listAlertRules(): Promise<
+  { id: number; type: string; params: Record<string, unknown>; enabled: boolean }[]
+> {
+  return safe(async () => {
+    const db = getDb();
+    const { alertRules } = await import("@/db/schema");
+    return db
+      .select({ id: alertRules.id, type: alertRules.type, params: alertRules.params, enabled: alertRules.enabled })
+      .from(alertRules)
+      .orderBy(alertRules.id);
+  }, []);
+}
+
 /** Metros (MSAs) whose primary state is the given state geography id, ordered by name. */
 export async function metrosForState(stateId: number) {
   return safe(async () => {

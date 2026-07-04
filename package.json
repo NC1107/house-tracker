@@ -16,6 +16,7 @@
     "ingest:fred": "tsx scripts/ingest-fred.ts",
     "ingest:zillow": "tsx scripts/ingest-zillow.ts",
     "ingest:redfin": "tsx scripts/ingest-redfin.ts",
+    "alerts:run": "tsx scripts/run-alerts.ts",
     "seed:geo": "tsx scripts/seed-geographies.ts"
   },
   "dependencies": {

@@ -32,7 +32,9 @@ async function main() {
   const header = rows[0];
   if (!header) throw new Error("Empty Redfin file");
 
-  const col = new Map(header.map((h, i) => [h.trim(), i]));
+  // Redfin ships UPPERCASE, quoted headers (e.g. "PERIOD_END"); parseCsv strips the quotes,
+  // so index columns case-insensitively.
+  const col = new Map(header.map((h, i) => [h.trim().toLowerCase(), i]));
   const needed = ["period_end", "region_type", "property_type"];
   for (const n of needed) {
     if (!col.has(n)) throw new Error(`Redfin file missing expected column "${n}"`);
@@ -45,17 +47,22 @@ async function main() {
     .map(([redfinCol, metricKey]) => ({ idx: col.get(redfinCol)!, metricKey }));
   console.log(`Mapping ${metricCols.length} metric columns`);
 
+  const regionTypeCol = col.get("region_type")!;
+  const propertyTypeCol = col.get("property_type")!;
+  const periodEndCol = col.get("period_end")!;
+
   const out: SeriesRow[] = [];
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
-    if (row[col.get("region_type")!] !== "State") continue;
-    if (row[col.get("property_type")!] !== "All Residential") continue;
+    // Values are also case-variable ("state", "All Residential"); compare case-insensitively.
+    if ((row[regionTypeCol] ?? "").trim().toLowerCase() !== "state") continue;
+    if ((row[propertyTypeCol] ?? "").trim().toLowerCase() !== "all residential") continue;
 
     const abbr = (row[stateCodeCol] ?? "").trim().toUpperCase();
     const geographyId = abbrToId.get(abbr);
     if (geographyId === undefined) continue;
 
-    const periodDate = (row[col.get("period_end")!] ?? "").trim();
+    const periodDate = (row[periodEndCol] ?? "").trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(periodDate)) continue;
 
     for (const mc of metricCols) {

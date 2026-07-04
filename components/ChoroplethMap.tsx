@@ -93,7 +93,7 @@ export default function ChoroplethMap({
             <span className="text-[var(--text-2)]">{active.priceToIncome}× income</span>
             <span className="text-[var(--text-2)]">Income needed: {usd(active.requiredIncome)}</span>
             <span className="text-[var(--text-2)]">≈ {usd(active.monthlyPayment)}/mo</span>
-            <span style={{ color: active.affordable ? "var(--good)" : "var(--critical)" }}>
+            <span style={{ color: active.affordable ? "var(--good-ink)" : "var(--critical)" }}>
               {active.affordable ? "Affordable to median household" : "Above median household's budget"}
             </span>
           </div>

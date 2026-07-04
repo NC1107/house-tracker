@@ -51,7 +51,7 @@ function directionBadge(direction: BuyerDirection, note?: string) {
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: "color-mix(in srgb, var(--good) 14%, transparent)", color: "var(--good)" }}
+      style={{ backgroundColor: "color-mix(in srgb, var(--good) 14%, transparent)", color: "var(--good-ink)" }}
     >
       <span aria-hidden className="text-sm leading-none">{arrow}</span>
       For buyers: {text}

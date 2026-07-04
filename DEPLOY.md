@@ -89,6 +89,10 @@ docker compose down -v                # stop and wipe the database
 The `web` container listens on 3000; publish a different host port with `WEB_PORT` in `.env`.
 Put it behind a reverse proxy (Caddy/nginx/Traefik) for TLS + a domain.
 
+**Security:** change `POSTGRES_PASSWORD` in `.env` from the default before exposing the host
+to any network, and don't publish Postgres's 5432 port publicly (the compose files keep it
+on the internal Docker network by default).
+
 ### Keeping data fresh
 
 Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:

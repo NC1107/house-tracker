@@ -61,7 +61,7 @@ export default async function OverviewPage() {
             <p className="mt-2 text-sm text-[var(--text-2)]">
               The typical US home costs <strong className="text-[var(--text-1)]">{usd(snap.medianHomePrice)}</strong> —{" "}
               {snap.medianCanAfford ? (
-                <span className="font-medium text-[var(--good)]">within a comfortable budget.</span>
+                <span className="font-medium text-[var(--good-ink)]">within a comfortable budget.</span>
               ) : (
                 <span className="font-medium text-[var(--critical)]">
                   a {usd(snap.medianHomePrice - snap.comfortableMaxPrice)} stretch beyond comfortable.

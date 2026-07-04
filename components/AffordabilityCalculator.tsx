@@ -8,6 +8,7 @@ import {
   type DownPaymentMode,
 } from "@/lib/affordability";
 import { usd, pct } from "@/lib/format";
+import { Term } from "@/components/Term";
 
 type DpKind = "percent" | "amount";
 
@@ -99,12 +100,12 @@ export default function AffordabilityCalculator({
         <div>
           <div className="mb-1 flex items-center justify-between">
             <span className="label mb-0">Down payment</span>
-            <div className="flex rounded-lg border border-slate-300 text-xs dark:border-slate-700">
+            <div className="flex rounded-lg border border-[var(--border)] text-xs">
               {(["percent", "amount"] as DpKind[]).map((k) => (
                 <button
                   key={k}
                   onClick={() => setDpKind(k)}
-                  className={`px-2 py-1 ${dpKind === k ? "bg-brand-500 text-white" : "text-slate-500"}`}
+                  className={`px-2 py-1 ${dpKind === k ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)]"}`}
                 >
                   {k === "percent" ? "%" : "$"}
                 </button>
@@ -151,23 +152,23 @@ export default function AffordabilityCalculator({
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-slate-400">{guideline.source}</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">{guideline.source}</p>
         </Field>
       </div>
 
       {/* Results */}
       <div className="space-y-6">
         <div className="card">
-          <p className="text-sm text-slate-500">You can likely afford a home up to</p>
-          <p className="mt-1 text-4xl font-bold text-brand-600 dark:text-brand-500">
+          <p className="text-sm text-[var(--text-2)]">You can likely afford a home up to</p>
+          <p className="mt-1 text-4xl font-bold text-[var(--brand)]">
             {usd(result.maxHomePrice)}
           </p>
-          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-500">
+          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-[var(--text-2)]">
             <span>Down payment: {usd(result.downPayment)}</span>
             <span>Loan: {usd(p.loanAmount)}</span>
             <span>LTV: {pct(p.ltv)}</span>
             {result.isJumbo && (
-              <span className="font-medium text-amber-600">Jumbo loan (above conforming limit)</span>
+              <span className="font-medium text-[var(--warning)]">Jumbo loan (above conforming limit)</span>
             )}
           </div>
           <div className="mt-3 rounded-lg bg-[var(--surface-2)] p-3 text-sm">
@@ -185,7 +186,7 @@ export default function AffordabilityCalculator({
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="card">
-            <h3 className="mb-3 font-semibold">Monthly payment (PITI)</h3>
+            <h3 className="mb-3 font-semibold">Monthly payment (<Term term="PITI" />)</h3>
             <Row label="Principal & interest" value={usd(p.principalAndInterest)} />
             <Row label="Property tax" value={usd(p.propertyTax)} />
             <Row label="Homeowners insurance" value={usd(p.insurance)} />
@@ -193,7 +194,7 @@ export default function AffordabilityCalculator({
               <Row label={guideline.mortgageInsurance === "mip" ? "FHA MIP" : "PMI"} value={usd(p.mortgageInsurance)} />
             )}
             {p.hoa > 0 && <Row label="HOA" value={usd(p.hoa)} />}
-            <div className="mt-2 border-t border-slate-200 pt-2 dark:border-slate-700">
+            <div className="mt-2 border-t border-[var(--border)] pt-2">
               <Row label="Total / month" value={usd(p.total)} bold />
             </div>
           </div>
@@ -208,7 +209,7 @@ export default function AffordabilityCalculator({
               label={`Back-end DTI (max ${pct(guideline.backEndLimit, 0)})`}
               value={pct(result.dti.backEnd)}
             />
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-[var(--muted)]">
               The max price is the point where your binding ratio hits its limit. Lower your
               debts or raise your down payment to push it higher.
             </p>
@@ -217,13 +218,13 @@ export default function AffordabilityCalculator({
 
         <div className="card">
           <h3 className="mb-3 font-semibold">Rate sensitivity</h3>
-          <p className="mb-3 text-xs text-slate-400">
+          <p className="mb-3 text-xs text-[var(--muted)]">
             What a rate change does to your buying power — the buyer&apos;s edge when timing a purchase.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-slate-400">
+                <tr className="text-left text-[var(--muted)]">
                   <th className="py-1 pr-4 font-medium">Rate</th>
                   <th className="py-1 pr-4 font-medium">Max price</th>
                   <th className="py-1 font-medium">Monthly PITI</th>
@@ -233,7 +234,7 @@ export default function AffordabilityCalculator({
                 {scenarios.map((s) => (
                   <tr
                     key={s.delta}
-                    className={s.delta === 0 ? "font-semibold text-brand-600 dark:text-brand-500" : ""}
+                    className={s.delta === 0 ? "font-semibold text-[var(--brand)]" : ""}
                   >
                     <td className="py-1 pr-4">{s.rate.toFixed(3)}%</td>
                     <td className="py-1 pr-4">{usd(s.price)}</td>
@@ -273,7 +274,7 @@ function NumberInput({
 }) {
   return (
     <div className="relative">
-      {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{prefix}</span>}
+      {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{prefix}</span>}
       <input
         type="number"
         min={0}
@@ -282,7 +283,7 @@ function NumberInput({
         step={step}
         onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
       />
-      {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{suffix}</span>}
+      {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{suffix}</span>}
     </div>
   );
 }
@@ -290,7 +291,7 @@ function NumberInput({
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <div className={`flex items-center justify-between py-0.5 ${bold ? "text-base font-semibold" : "text-sm"}`}>
-      <span className="text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="text-[var(--text-2)]">{label}</span>
       <span>{value}</span>
     </div>
   );

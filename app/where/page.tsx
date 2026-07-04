@@ -93,7 +93,7 @@ export default async function WherePage() {
                       </td>
                       <td className="py-1.5 pr-4 tabular-nums">{usd(d.requiredIncome)}</td>
                       <td className="py-1.5 pr-4 tabular-nums">{usd(d.monthlyPayment)}/mo</td>
-                      <td className="py-1.5" style={{ color: d.affordable ? "var(--good)" : "var(--critical)" }}>
+                      <td className="py-1.5" style={{ color: d.affordable ? "var(--good-ink)" : "var(--critical)" }}>
                         {d.affordable ? "Affordable" : "Stretched"}
                       </td>
                     </tr>

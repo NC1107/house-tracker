@@ -22,6 +22,7 @@
   --series-2: #eb6834; /* orange */
   --series-3: #1baf7a; /* aqua */
   --good: #0ca30c;
+  --good-ink: #0a7a2f; /* AA-contrast green for small text (fills keep --good) */
   --warning: #f59e0b;
   --critical: #d03b3b;
 }
@@ -41,6 +42,7 @@ html.dark {
   --series-1: #3987e5;
   --series-2: #eb6834;
   --series-3: #1baf7a;
+  --good-ink: #34d399; /* brighter green reads better on the dark surface */
 }
 
 @media (prefers-color-scheme: dark) {

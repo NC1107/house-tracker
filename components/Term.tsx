@@ -39,10 +39,6 @@ export const GLOSSARY: Record<string, Entry> = {
     def: "How long it would take to sell every listing at the current sales pace. About 6 months is balanced; higher favors buyers.",
     formula: "supply = active listings / homes sold per month",
   },
-  "Months of supply": {
-    def: "How long it would take to sell every listing at the current sales pace. About 6 months is balanced; higher favors buyers.",
-    formula: "supply = active listings / homes sold per month",
-  },
   "Sale-to-list ratio": {
     def: "Below 1.0 means homes are selling under asking; buyers have leverage.",
     formula: "ratio = final sale price / asking price",
@@ -67,7 +63,8 @@ export const GLOSSARY: Record<string, Entry> = {
 };
 
 export function Term({ term, children }: { term: keyof typeof GLOSSARY | string; children?: React.ReactNode }) {
-  const entry = GLOSSARY[term];
+  // Lookups are case-tolerant on the first letter so "Months of supply" hits "months of supply".
+  const entry = GLOSSARY[term] ?? GLOSSARY[term.charAt(0).toLowerCase() + term.slice(1)];
   const text = children ?? term;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);

@@ -1,7 +1,9 @@
 import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, statesWithMarketData, metrosWithMarketData, latestMetric, metricYoY, listAlertRules, dbConfigured } from "@/lib/queries";
+import { statesList, statesWithMarketData, metrosWithMarketData, citiesWithMarketData, latestMetric, metricYoY, listAlertRules, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 import { Term } from "@/components/Term";
+import AutoSubmitSelect from "@/components/AutoSubmitSelect";
+import { getProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -22,24 +24,31 @@ function scoreColor(score: number): string {
 export default async function MarketPage({
   searchParams,
 }: {
-  searchParams: Promise<{ geo?: string; metro?: string }>;
+  searchParams: Promise<{ geo?: string; metro?: string; city?: string }>;
 }) {
-  const { geo, metro } = await searchParams;
+  const { geo, metro, city } = await searchParams;
   const [allStates, withDataIds] = await Promise.all([statesList(), statesWithMarketData()]);
   const withData = new Set(withDataIds);
   // Only offer states that actually have Redfin metrics, so nobody lands on an empty view.
   const states = withData.size > 0 ? allStates.filter((s) => withData.has(s.id)) : allStates;
+  const profile = await getProfile();
+  const homeStateId = states.find((s) => s.name === profile.homeState)?.id;
   const requested = geo ? Number(geo) : undefined;
-  const selectedId = requested && states.some((s) => s.id === requested) ? requested : states[0]?.id;
+  const selectedId =
+    requested && states.some((s) => s.id === requested) ? requested : homeStateId ?? states[0]?.id;
   const selected = states.find((s) => s.id === selectedId);
   const marketDataLoaded = withData.size > 0;
 
-  // Metro drilldown: only metros that actually have Redfin metro metrics ingested.
-  const metros = selectedId ? await metrosWithMarketData(selectedId) : [];
+  // Drilldowns: only metros/cities that actually have Redfin metrics ingested.
+  const [metros, citiesWithData] = selectedId
+    ? await Promise.all([metrosWithMarketData(selectedId), citiesWithMarketData(selectedId)])
+    : [[], []];
   const metroId = metro ? Number(metro) : undefined;
+  const cityId = city ? Number(city) : undefined;
   const selectedMetro = metros.find((m) => m.id === metroId);
-  const regionId = selectedMetro ? selectedMetro.id : selectedId;
-  const regionName = selectedMetro ? selectedMetro.name : selected?.name;
+  const selectedCity = citiesWithData.find((c) => c.id === cityId);
+  const regionId = selectedCity?.id ?? selectedMetro?.id ?? selectedId;
+  const regionName = selectedCity?.name ?? selectedMetro?.name ?? selected?.name;
 
   let heat = null as ReturnType<typeof marketHeat> | null;
   let through: string | undefined;
@@ -91,13 +100,26 @@ export default async function MarketPage({
         <>
           <form className="flex flex-wrap items-center gap-3">
             <label className="label mb-0">State</label>
-            <select name="geo" defaultValue={String(selectedId)} className="input max-w-xs">
+            <AutoSubmitSelect name="geo" defaultValue={String(selectedId)} className="input max-w-xs">
               {states.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>
               ))}
-            </select>
+            </AutoSubmitSelect>
+            {citiesWithData.length > 0 && (
+              <>
+                <label className="label mb-0">City</label>
+                <select name="city" defaultValue={cityId ? String(cityId) : ""} className="input max-w-xs">
+                  <option value="">Any</option>
+                  {citiesWithData.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             {metros.length > 0 && (
               <>
                 <label className="label mb-0">Metro</label>

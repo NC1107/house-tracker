@@ -20,6 +20,7 @@
     "ingest:fhfa": "tsx scripts/ingest-fhfa.ts",
     "ingest:census": "tsx scripts/ingest-census.ts",
     "ingest:redfin-metro": "tsx scripts/ingest-redfin-metro.ts",
+    "ingest:redfin-city": "tsx scripts/ingest-redfin-city.ts",
     "ingest:fmhpi": "tsx scripts/ingest-fmhpi.ts",
     "ingest:hud": "tsx scripts/ingest-hud.ts",
     "alerts:run": "tsx scripts/run-alerts.ts",

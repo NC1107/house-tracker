@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { PROFILE_COOKIE } from "@/lib/profile-shared";
 import { usd } from "@/lib/format";
 import NumberField from "@/components/NumberField";
+import { REDFIN_CITY_REGION_IDS } from "@/lib/sources/redfin-cities";
 
 const NUMBERS_COOKIE = "ht_numbers"; // persistent store of the user's entered numbers
 const DISMISSED_COOKIE = "ht_seen"; // set once the first-visit prompt is answered
 
-type Numbers = { income: number; downPct: number; monthlyDebts: number };
+type Numbers = { income: number; downPct: number; monthlyDebts: number; homeState: string; homeCities: string[] };
 
 /**
  * Global buyer-profile control shown once under the header (replaces the old per-page
@@ -39,6 +40,9 @@ export default function ProfileControls({
   const [inc, setInc] = useState(income);
   const [dp, setDp] = useState(Math.round(downPct * 100));
   const [debts, setDebts] = useState(monthlyDebts);
+  const [homeState, setHomeState] = useState("");
+  const [homeCities, setHomeCities] = useState<string[]>([]);
+  const stateCities = REDFIN_CITY_REGION_IDS[homeState] ?? [];
 
   // On mount, load any durable numbers; open the popup on a genuine first visit.
   useEffect(() => {
@@ -48,6 +52,8 @@ export default function ProfileControls({
       setInc(stored.income);
       setDp(Math.round(stored.downPct * 100));
       setDebts(stored.monthlyDebts);
+      setHomeState(stored.homeState);
+      setHomeCities(stored.homeCities);
     }
     if (!stored && !getCookie(DISMISSED_COOKIE)) setOpen(true);
   }, []);
@@ -58,7 +64,7 @@ export default function ProfileControls({
   }
 
   function save() {
-    const n: Numbers = { income: inc, downPct: dp / 100, monthlyDebts: debts };
+    const n: Numbers = { income: inc, downPct: dp / 100, monthlyDebts: debts, homeState, homeCities };
     writeCookie(NUMBERS_COOKIE, JSON.stringify(n));
     writeCookie(DISMISSED_COOKIE, "1");
     setSaved(n);
@@ -159,6 +165,47 @@ export default function ProfileControls({
               </div>
             </div>
 
+            <div className="mt-4 space-y-2">
+              <label className="block">
+                <span className="label">Where are you looking to buy? (optional)</span>
+                <select
+                  className="input"
+                  value={homeState}
+                  onChange={(e) => {
+                    setHomeState(e.target.value);
+                    setHomeCities([]);
+                  }}
+                >
+                  <option value="">Anywhere / not sure yet</option>
+                  {Object.keys(REDFIN_CITY_REGION_IDS).map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+              </label>
+              {stateCities.length > 0 && (
+                <fieldset>
+                  <span className="label">Cities (pick any)</span>
+                  <div className="grid max-h-36 grid-cols-2 gap-x-2 gap-y-1 overflow-y-auto rounded-lg border border-[var(--border)] p-2 text-sm">
+                    {stateCities.map((c) => (
+                      <label key={c.id} className="flex items-center gap-1.5">
+                        <input
+                          type="checkbox"
+                          checked={homeCities.includes(c.name)}
+                          onChange={(e) =>
+                            setHomeCities((prev) =>
+                              e.target.checked ? [...prev, c.name] : prev.filter((n) => n !== c.name),
+                            )
+                          }
+                          className="accent-[var(--brand)]"
+                        />
+                        <span className="truncate">{c.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              )}
+            </div>
+
             <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
               <button type="button" onClick={useAverages} className="rounded-lg px-3 py-2 text-sm text-[var(--text-2)] hover:bg-[var(--surface-2)]">
                 Use US averages
@@ -186,10 +233,12 @@ function readNumbers(): Numbers | null {
   if (!raw) return null;
   try {
     const p = JSON.parse(decodeURIComponent(raw));
-    const n = {
+    const n: Numbers = {
       income: Number(p.income),
       downPct: Number(p.downPct),
       monthlyDebts: Number(p.monthlyDebts),
+      homeState: typeof p.homeState === "string" ? p.homeState : "",
+      homeCities: Array.isArray(p.homeCities) ? p.homeCities.filter((c: unknown) => typeof c === "string") : [],
     };
     return Number.isFinite(n.income) && Number.isFinite(n.downPct) && Number.isFinite(n.monthlyDebts) ? n : null;
   } catch {

@@ -23,6 +23,10 @@ export async function getProfile(): Promise<BuyerProfile & { isCustom: boolean }
       income: clampNum(p.income, DEFAULT_PROFILE.income, 0, 100_000_000),
       downPct: clampNum(p.downPct, DEFAULT_PROFILE.downPct, 0, 1),
       monthlyDebts: clampNum(p.monthlyDebts, 0, 0, 1_000_000),
+      homeState: typeof p.homeState === "string" ? p.homeState.slice(0, 40) : "",
+      homeCities: Array.isArray(p.homeCities)
+        ? p.homeCities.filter((c: unknown) => typeof c === "string").slice(0, 10)
+        : [],
       isCustom: true,
     };
   } catch {

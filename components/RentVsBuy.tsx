@@ -14,12 +14,13 @@ import {
 } from "recharts";
 import { rentVsBuy } from "@/lib/rentvsbuy";
 import { usd } from "@/lib/format";
+import { CHART } from "@/lib/chartTheme";
 
-export default function RentVsBuy({ defaultRate = 6.8 }: { defaultRate?: number }) {
+export default function RentVsBuy({ defaultRate = 6.8, defaultRent = 2_200 }: { defaultRate?: number; defaultRent?: number }) {
   const [homePrice, setHomePrice] = useState(400_000);
   const [downPct, setDownPct] = useState(20);
   const [rate, setRate] = useState(defaultRate);
-  const [rent, setRent] = useState(2_200);
+  const [rent, setRent] = useState(defaultRent);
   const [rentGrowth, setRentGrowth] = useState(3);
   const [appreciation, setAppreciation] = useState(3);
   const [investReturn, setInvestReturn] = useState(5);
@@ -111,8 +112,8 @@ export default function RentVsBuy({ defaultRate = 6.8 }: { defaultRate?: number 
               <Tooltip formatter={(v: number) => usd(v)} labelFormatter={(y) => `Year ${Math.round(Number(y))}`} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
               <Legend />
               {be && <ReferenceLine x={+(be / 12).toFixed(2)} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: "breakeven", fontSize: 11, fill: "#94a3b8" }} />}
-              <Line type="monotone" dataKey="Buy" stroke="#059669" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="Rent" stroke="#2563eb" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="Buy" stroke={CHART.series1} strokeWidth={2} dot={false} isAnimationActive={false} />
+              <Line type="monotone" dataKey="Rent" stroke={CHART.series2} strokeWidth={2} dot={false} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>

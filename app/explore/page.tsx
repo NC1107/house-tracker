@@ -1,5 +1,7 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
+import { PageHeader, Card, SectionTitle, EmptyNote } from "@/components/ui";
 import { statesList, metricHistory, dbConfigured } from "@/lib/queries";
+import { CHART } from "@/lib/chartTheme";
 
 export const dynamic = "force-dynamic";
 
@@ -14,27 +16,21 @@ export default async function ExplorePage({
   const selected = states.find((s) => s.id === selectedId);
 
   const [zhvi, zori] = selectedId
-    ? await Promise.all([
-        metricHistory(selectedId, "zhvi_all"),
-        metricHistory(selectedId, "zori"),
-      ])
+    ? await Promise.all([metricHistory(selectedId, "zhvi_all"), metricHistory(selectedId, "zori")])
     : [[], []];
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Region Explorer</h1>
-        <p className="text-sm text-slate-500">
-          Drill from state down to metro, county, and ZIP as data is ingested.
-        </p>
-      </div>
+      <PageHeader
+        title="Region Explorer"
+        subtitle="Drill from state down to metro, county, and ZIP as data is ingested. Compare home values and rents over time."
+      />
 
       {!dbConfigured() || states.length === 0 ? (
-        <div className="card text-sm text-slate-500">
+        <EmptyNote>
           No geographies seeded yet. Run <code>npm run seed:geo</code> and the ingestion
-          scripts to explore regions. The data model supports nation → state → metro →
-          county → ZIP.
-        </div>
+          scripts to explore regions. The data model supports nation → state → metro → county → ZIP.
+        </EmptyNote>
       ) : (
         <>
           <form className="flex flex-wrap items-center gap-3">
@@ -46,21 +42,18 @@ export default async function ExplorePage({
                 </option>
               ))}
             </select>
-            <button className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white">
-              View
-            </button>
+            <button className="btn">View</button>
           </form>
 
-          <div className="card">
-            <h2 className="mb-3 font-semibold">
-              {selected?.name}: Home value (ZHVI)
-            </h2>
-            <TimeSeriesChart data={zhvi} format="usd" />
-          </div>
-
-          <div className="card">
-            <h2 className="mb-3 font-semibold">{selected?.name}: Rent (ZORI)</h2>
-            <TimeSeriesChart data={zori} color="#7c3aed" format="usd" />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <SectionTitle hint="Zillow ZHVI">{selected?.name}: typical home value</SectionTitle>
+              <TimeSeriesChart data={zhvi} format="usd" color={CHART.series1} />
+            </Card>
+            <Card>
+              <SectionTitle hint="Zillow ZORI">{selected?.name}: typical rent</SectionTitle>
+              <TimeSeriesChart data={zori} format="usd" color={CHART.series3} />
+            </Card>
           </div>
         </>
       )}

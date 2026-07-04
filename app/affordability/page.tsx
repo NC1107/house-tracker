@@ -1,5 +1,7 @@
 import AffordabilityCalculator from "@/components/AffordabilityCalculator";
+import { PageHeader } from "@/components/ui";
 import { latestMortgageRate } from "@/lib/queries";
+import { NATIONAL } from "@/lib/reference";
 
 export const dynamic = "force-dynamic";
 
@@ -7,14 +9,13 @@ export default async function AffordabilityPage() {
   const rate = await latestMortgageRate("30yr");
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Affordability</h1>
-        <p className="text-sm text-slate-500">
-          Bank-grade math — full PITI, PMI/MIP, and real DTI underwriting ratios. Rate
-          {rate ? ` prefilled from the latest FRED reading (${rate.rate.toFixed(2)}%).` : " defaults to 6.8% until data is ingested."}
-        </p>
-      </div>
-      <AffordabilityCalculator defaultRate={rate?.rate ?? 6.8} />
+      <PageHeader
+        title="Affordability"
+        subtitle={`Bank-grade underwriting math — full PITI, PMI/MIP, and real front/back-end DTI ratios. ${
+          rate ? `Rate prefilled from FRED (${rate.rate.toFixed(2)}%).` : "Rate defaults to 6.8% until data is ingested."
+        }`}
+      />
+      <AffordabilityCalculator defaultRate={rate?.rate ?? 6.8} defaultIncome={NATIONAL.medianHouseholdIncome} />
     </div>
   );
 }

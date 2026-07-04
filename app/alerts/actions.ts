@@ -27,10 +27,13 @@ export async function createAlert(formData: FormData) {
   } else if (type === "listing_match") {
     params = {
       stateName: String(formData.get("stateName") || ""),
+      minPrice: num(formData.get("minPrice"), 10_000),
       maxPrice: num(formData.get("maxPrice"), 400_000),
       minBeds: num(formData.get("minBeds"), 0),
       minBaths: num(formData.get("minBaths"), 0),
       minStories: num(formData.get("minStories"), 0),
+      minSqft: num(formData.get("minSqft"), 0),
+      minYearBuilt: num(formData.get("minYearBuilt"), 0),
       basement: formData.get("basement") === "1",
     };
     if (!params.stateName) return;

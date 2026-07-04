@@ -52,10 +52,18 @@ export interface LiveListing {
  * Beds/baths are additionally re-checked client-side from the CSV as belt and braces.
  */
 export interface ListingFilters {
+  /** Floors out $1 "auction teaser" listings, which are otherwise indistinguishable. */
+  minPrice?: number;
   maxPrice?: number;
   minBeds?: number;
   minBaths?: number;
   minStories?: number;
+  minSqft?: number;
+  maxSqft?: number;
+  minYearBuilt?: number;
+  maxYearBuilt?: number;
+  /** Minimum lot size in sqft (server param unverified, so re-checked client-side). */
+  minLotSqft?: number;
   /** Require a basement (finished, partially finished, or unfinished). */
   basement?: boolean;
   /** Property types; defaults to houses + condos + townhouses + multi-family. */
@@ -87,9 +95,15 @@ function searchParams(opts: { stateName: string; limit?: number } & ListingFilte
   if (opts.maxPrice && Number.isFinite(opts.maxPrice)) {
     params.set("max_price", String(Math.round(opts.maxPrice)));
   }
+  if (opts.minPrice && opts.minPrice > 0) params.set("min_price", String(Math.round(opts.minPrice)));
   if (opts.minBeds && opts.minBeds > 0) params.set("num_beds", String(opts.minBeds));
   if (opts.minBaths && opts.minBaths > 0) params.set("num_baths", String(opts.minBaths));
   if (opts.minStories && opts.minStories > 1) params.set("min_stories", String(opts.minStories));
+  if (opts.minSqft && opts.minSqft > 0) params.set("min_listing_approx_size", String(opts.minSqft));
+  if (opts.maxSqft && opts.maxSqft > 0) params.set("max_listing_approx_size", String(opts.maxSqft));
+  if (opts.minYearBuilt && opts.minYearBuilt > 0) params.set("min_year_built", String(opts.minYearBuilt));
+  if (opts.maxYearBuilt && opts.maxYearBuilt > 0) params.set("max_year_built", String(opts.maxYearBuilt));
+  if (opts.minLotSqft && opts.minLotSqft > 0) params.set("min_parcel_size", String(opts.minLotSqft));
   if (opts.basement) params.set("basement_types", "1,2,3"); // finished, unfinished, partial
   return params;
 }
@@ -137,6 +151,7 @@ interface GisHome {
   dataSourceId?: number;
   numPictures?: number;
   yearBuilt?: { value?: number } | number;
+  lotSize?: { value?: number };
 }
 
 const UI_PROPERTY_TYPES: Record<number, string> = {
@@ -176,10 +191,19 @@ async function fetchViaJson(
     const baths = Number.isFinite(Number(h.baths)) && Number(h.baths) > 0 ? Number(h.baths) : null;
     // Re-check what the payload can prove, in case the endpoint ignores a param someday.
     if (opts.maxPrice && price > opts.maxPrice) continue;
+    if (opts.minPrice && price < opts.minPrice) continue;
     if (opts.minBeds && beds !== null && beds < opts.minBeds) continue;
     if (opts.minBaths && baths !== null && baths < opts.minBaths) continue;
+    const sqftVal = Number(h.sqFt?.value) > 0 ? Number(h.sqFt?.value) : null;
+    if (opts.minSqft && sqftVal !== null && sqftVal < opts.minSqft) continue;
+    if (opts.maxSqft && sqftVal !== null && sqftVal > opts.maxSqft) continue;
+    const lotVal = Number(h.lotSize?.value) > 0 ? Number(h.lotSize?.value) : null;
+    if (opts.minLotSqft && (lotVal === null || lotVal < opts.minLotSqft)) continue;
+    const yb = typeof h.yearBuilt === "object" ? Number(h.yearBuilt?.value) : Number(h.yearBuilt);
+    if (opts.minYearBuilt && Number.isFinite(yb) && yb > 0 && yb < opts.minYearBuilt) continue;
+    if (opts.maxYearBuilt && Number.isFinite(yb) && yb > 0 && yb > opts.maxYearBuilt) continue;
     const mls = (h.mlsId?.value ?? "").trim();
-    const yearBuilt = typeof h.yearBuilt === "object" ? Number(h.yearBuilt?.value) : Number(h.yearBuilt);
+    const yearBuilt = yb;
     out.push({
       address: h.streetLine?.value ?? "",
       city: h.city ?? "",

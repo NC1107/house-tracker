@@ -100,6 +100,20 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
               <span className="label">Min stories</span>
               <input type="number" name="minStories" min={1} max={4} step={1} defaultValue={2} className="input" />
             </label>
+            <label className="block">
+              <span className="label">Min price ($, filters $1 auctions)</span>
+              <input type="number" name="minPrice" min={0} step={5000} defaultValue={10000} className="input" />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block">
+              <span className="label">Min sqft (optional)</span>
+              <input type="number" name="minSqft" min={0} step={100} placeholder="any" className="input" />
+            </label>
+            <label className="block">
+              <span className="label">Built after (optional)</span>
+              <input type="number" name="minYearBuilt" min={1800} max={2030} placeholder="any" className="input" />
+            </label>
             <label className="mt-6 flex items-center gap-2 text-sm">
               <input type="checkbox" name="basement" value="1" className="accent-[var(--brand)]" />
               Must have a basement

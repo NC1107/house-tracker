@@ -65,10 +65,13 @@ async function main() {
       const filters = p as ListingFilters & { stateName?: string };
       const listings = await fetchLiveListings({
         stateName: String(filters.stateName ?? ""),
+        minPrice: Number(filters.minPrice) || undefined,
         maxPrice: Number(filters.maxPrice) || undefined,
         minBeds: Number(filters.minBeds) || undefined,
         minBaths: Number(filters.minBaths) || undefined,
         minStories: Number(filters.minStories) || undefined,
+        minSqft: Number(filters.minSqft) || undefined,
+        minYearBuilt: Number(filters.minYearBuilt) || undefined,
         basement: Boolean(filters.basement),
       });
       const keyOf = (l: { mls: string; url: string }) => `mls:${l.mls || l.url}`.slice(0, 128);

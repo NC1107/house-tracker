@@ -3,6 +3,7 @@
  * configured (or the DB is empty), pages render a friendly empty state instead of crashing.
  */
 import { and, desc, eq, sql } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { getDb } from "@/db/client";
 import { geographies, metricSeries, mortgageRates } from "@/db/schema";
 import type { SeriesPoint } from "@/lib/types";
@@ -10,6 +11,24 @@ import { yoyChangeSeries } from "@/lib/trends";
 
 export function dbConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);
+}
+
+/**
+ * Cross-request cache for read helpers. The data changes at most once a day (nightly
+ * ingest), so a 15-minute shared cache removes nearly all per-page-view DB round trips.
+ * Args are part of the cache key. Outside the Next runtime (tsx ingest/alert scripts)
+ * there is no cache handler, so the raw function runs directly. Alert rules are NOT
+ * cached (user-mutable; must reflect edits immediately).
+ */
+const REVALIDATE_SECONDS = 900;
+function cachedQuery<A extends unknown[], T>(
+  name: string,
+  fn: (...args: A) => Promise<T>,
+): (...args: A) => Promise<T> {
+  return (...args: A) => {
+    if (!process.env.NEXT_RUNTIME) return fn(...args);
+    return unstable_cache(fn, [`q:${name}`], { revalidate: REVALIDATE_SECONDS })(...args);
+  };
 }
 
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
@@ -25,7 +44,7 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   }
 }
 
-export async function latestMortgageRate(product: "30yr" | "15yr" = "30yr") {
+async function latestMortgageRateRaw(product: "30yr" | "15yr" = "30yr") {
   return safe(async () => {
     const db = getDb();
     const [row] = await db
@@ -38,7 +57,7 @@ export async function latestMortgageRate(product: "30yr" | "15yr" = "30yr") {
   }, null);
 }
 
-export async function rateHistory(product: "30yr" | "15yr" = "30yr"): Promise<SeriesPoint[]> {
+async function rateHistoryRaw(product: "30yr" | "15yr" = "30yr"): Promise<SeriesPoint[]> {
   return safe(async () => {
     const db = getDb();
     const rows = await db
@@ -50,7 +69,7 @@ export async function rateHistory(product: "30yr" | "15yr" = "30yr"): Promise<Se
   }, []);
 }
 
-export async function metricHistory(
+async function metricHistoryRaw(
   geographyId: number,
   metricKey: string,
 ): Promise<SeriesPoint[]> {
@@ -65,7 +84,7 @@ export async function metricHistory(
   }, []);
 }
 
-export async function nationalSeries(metricKey: string): Promise<SeriesPoint[]> {
+async function nationalSeriesRaw(metricKey: string): Promise<SeriesPoint[]> {
   return safe(async () => {
     const db = getDb();
     const rows = await db
@@ -78,7 +97,7 @@ export async function nationalSeries(metricKey: string): Promise<SeriesPoint[]> 
   }, []);
 }
 
-export async function latestMetric(
+async function latestMetricRaw(
   geographyId: number,
   metricKey: string,
 ): Promise<{ date: string; value: number } | null> {
@@ -103,7 +122,7 @@ export async function metricYoY(geographyId: number, metricKey: string): Promise
 }
 
 /** Latest value of a metric for every state, keyed for map/ranking views. */
-export async function latestMetricByState(
+async function latestMetricByStateRaw(
   metricKey: string,
 ): Promise<{ stateCode: string; name: string; value: number; date: string }[]> {
   return safe(async () => {
@@ -134,7 +153,7 @@ export async function listAlertRules(): Promise<
 }
 
 /** Metros (MSAs) whose primary state is the given state geography id, ordered by name. */
-export async function metrosForState(stateId: number) {
+async function metrosForStateRaw(stateId: number) {
   return safe(async () => {
     const db = getDb();
     return db
@@ -145,7 +164,7 @@ export async function metrosForState(stateId: number) {
   }, [] as { id: number; name: string }[]);
 }
 
-export async function statesList() {
+async function statesListRaw() {
   return safe(async () => {
     const db = getDb();
     return db
@@ -157,7 +176,7 @@ export async function statesList() {
 }
 
 /** Metros of a state that have at least one Redfin market-heat metric ingested. */
-export async function metrosWithMarketData(stateId: number): Promise<{ id: number; name: string }[]> {
+async function metrosWithMarketDataRaw(stateId: number): Promise<{ id: number; name: string }[]> {
   return safe(async () => {
     const db = getDb();
     const rows = await db.execute(sql`
@@ -173,7 +192,8 @@ export async function metrosWithMarketData(stateId: number): Promise<{ id: numbe
 }
 
 /** State geography ids that have at least one Redfin market-heat metric ingested. */
-export async function statesWithMarketData(): Promise<Set<number>> {
+// Returns an array (not a Set): results pass through the JSON cache, which drops Sets.
+async function statesWithMarketDataRaw(): Promise<number[]> {
   return safe(async () => {
     const db = getDb();
     const rows = await db.execute(sql`
@@ -183,6 +203,18 @@ export async function statesWithMarketData(): Promise<Set<number>> {
       where g.level = 'state'
         and ms.metric_key in ('months_of_supply', 'days_on_market', 'price_drops_share', 'sale_to_list', 'inventory')
     `);
-    return new Set((rows as unknown as { id: number }[]).map((r) => Number(r.id)));
-  }, new Set<number>());
+    return (rows as unknown as { id: number }[]).map((r) => Number(r.id));
+  }, [] as number[]);
 }
+
+
+export const latestMortgageRate = cachedQuery("latestMortgageRate", latestMortgageRateRaw);
+export const rateHistory = cachedQuery("rateHistory", rateHistoryRaw);
+export const metricHistory = cachedQuery("metricHistory", metricHistoryRaw);
+export const nationalSeries = cachedQuery("nationalSeries", nationalSeriesRaw);
+export const latestMetric = cachedQuery("latestMetric", latestMetricRaw);
+export const latestMetricByState = cachedQuery("latestMetricByState", latestMetricByStateRaw);
+export const metrosForState = cachedQuery("metrosForState", metrosForStateRaw);
+export const statesList = cachedQuery("statesList", statesListRaw);
+export const statesWithMarketData = cachedQuery("statesWithMarketData", statesWithMarketDataRaw);
+export const metrosWithMarketData = cachedQuery("metrosWithMarketData", metrosWithMarketDataRaw);

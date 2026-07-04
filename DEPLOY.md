@@ -43,6 +43,7 @@ docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:redfin
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:realtor
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:redfin-metro
+docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:redfin-city
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:fhfa
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:census
 docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:fmhpi
@@ -85,6 +86,7 @@ docker compose --profile tools run --rm tools npm run ingest:zillow
 docker compose --profile tools run --rm tools npm run ingest:redfin
 docker compose --profile tools run --rm tools npm run ingest:realtor
 docker compose --profile tools run --rm tools npm run ingest:redfin-metro
+docker compose --profile tools run --rm tools npm run ingest:redfin-city
 docker compose --profile tools run --rm tools npm run ingest:fhfa
 docker compose --profile tools run --rm tools npm run ingest:census
 docker compose --profile tools run --rm tools npm run ingest:fmhpi
@@ -138,7 +140,7 @@ entry running just `alerts:run` (it is cheap), e.g. every 2 hours:
 Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:
 
 ```
-30 9 * * * cd /path/to/house-tracker && docker compose --profile tools run --rm tools sh -c "npm run ingest:fred && npm run ingest:zillow && npm run ingest:redfin && npm run ingest:redfin-metro && npm run ingest:realtor && npm run ingest:fhfa && npm run ingest:fmhpi && npm run alerts:run" >> /var/log/house-tracker-ingest.log 2>&1
+30 9 * * * cd /path/to/house-tracker && docker compose --profile tools run --rm tools sh -c "npm run ingest:fred && npm run ingest:zillow && npm run ingest:redfin && npm run ingest:redfin-metro && npm run ingest:redfin-city && npm run ingest:realtor && npm run ingest:fhfa && npm run ingest:fmhpi && npm run alerts:run" >> /var/log/house-tracker-ingest.log 2>&1
 ```
 
 (The included `.github/workflows/ingest.yml` does the same on GitHub-hosted runners if you

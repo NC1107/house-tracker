@@ -2,6 +2,7 @@ import Image from "next/image";
 import { PageHeader, EmptyNote } from "@/components/ui";
 import { statesList, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { fetchLiveListings, fetchStateCities, REDFIN_STATE_REGION_IDS } from "@/lib/sources/redfin-live";
+import AutoSubmitSelect from "@/components/AutoSubmitSelect";
 import { maxAffordablePrice, GUIDELINES } from "@/lib/affordability";
 import { getProfile } from "@/lib/profile";
 import { usd } from "@/lib/format";
@@ -23,7 +24,8 @@ export default async function DealsPage({
     yearmin?: string;
     yearmax?: string;
     lot?: string;
-    type?: string;
+    type?: string | string[];
+    lt?: string | string[];
     city?: string;
   }>;
 }) {
@@ -44,15 +46,20 @@ export default async function DealsPage({
     annualRatePct: rate,
     guideline: GUIDELINES.conventional_classic,
   }).maxHomePrice;
-  const budget = Math.round(Number(budgetParam) > 0 ? Number(budgetParam) : comfortable);
+  // Default max price: comfortable budget, clamped to $1M so an extreme profile (e.g.
+  // 100% down) can't produce a nonsense default. Typing a higher number still works.
+  const budget = Math.round(Number(budgetParam) > 0 ? Number(budgetParam) : Math.min(comfortable, 1_000_000));
 
   const usable = states.filter((s) => REDFIN_STATE_REGION_IDS[s.name]);
-  const selectedName = usable.some((s) => s.name === stateParam) ? stateParam! : usable[0]?.name;
+  const fallbackState = usable.some((s) => s.name === profile.homeState) ? profile.homeState : usable[0]?.name;
+  const selectedName = usable.some((s) => s.name === stateParam) ? stateParam! : fallbackState;
 
   // City scoping: known big cities search Redfin's city region directly; anything else
   // typed falls back to filtering the state results by city name.
   const cities = selectedName ? await fetchStateCities(selectedName) : [];
-  const cityQuery = (sp.city ?? "").trim();
+  // Default the city to the profile's first saved city when landing without params.
+  const defaultCity = sp.city === undefined && selectedName === profile.homeState ? (profile.homeCities[0] ?? "") : "";
+  const cityQuery = (sp.city ?? defaultCity).trim();
   const cityMatch = cityQuery
     ? cities.find((c) => c.name.toLowerCase() === cityQuery.toLowerCase())
     : undefined;
@@ -68,9 +75,15 @@ export default async function DealsPage({
   const yearMin = Math.max(0, Number(sp.yearmin) || 0);
   const yearMax = Math.max(0, Number(sp.yearmax) || 0);
   const lotAcres = Math.max(0, Number(sp.lot) || 0);
-  const houseType = ["house", "condo", "townhouse", "multifamily"].includes(sp.type ?? "")
-    ? (sp.type as "house" | "condo" | "townhouse" | "multifamily")
-    : undefined;
+  const TYPE_KEYS = ["house", "condo", "townhouse", "multifamily", "land"] as const;
+  const LT_KEYS = ["agent", "owner", "new"] as const;
+  const asList = (v: string | string[] | undefined) => (Array.isArray(v) ? v : v ? [v] : []);
+  const pickedTypes = asList(sp.type).filter((t): t is (typeof TYPE_KEYS)[number] =>
+    (TYPE_KEYS as readonly string[]).includes(t),
+  );
+  const pickedListingTypes = asList(sp.lt).filter((t): t is (typeof LT_KEYS)[number] =>
+    (LT_KEYS as readonly string[]).includes(t),
+  );
 
   const listings = selectedName
     ? await fetchLiveListings({
@@ -85,7 +98,8 @@ export default async function DealsPage({
         maxYearBuilt: yearMax || undefined,
         minLotSqft: lotAcres ? Math.round(lotAcres * 43_560) : undefined,
         basement: wantBasement,
-        types: houseType ? [houseType] : undefined,
+        types: pickedTypes.length ? pickedTypes : undefined,
+        listingTypes: pickedListingTypes.length ? pickedListingTypes : undefined,
         cityRegionId: cityMatch?.id,
         cityName: cityMatch ? undefined : cityQuery || undefined,
       })
@@ -98,7 +112,8 @@ export default async function DealsPage({
     yearMin || yearMax ? `built ${yearMin || "..."}-${yearMax || "now"}` : null,
     lotAcres ? `${lotAcres}+ acres` : null,
     wantBasement ? "basement" : null,
-    houseType ?? null,
+    pickedTypes.length ? pickedTypes.join("/") : null,
+    pickedListingTypes.length && pickedListingTypes.length < 3 ? pickedListingTypes.join("/") : null,
     cityQuery ? `in ${cityMatch?.name ?? cityQuery}` : null,
   ]
     .filter(Boolean)
@@ -119,13 +134,13 @@ export default async function DealsPage({
             <div className="flex flex-wrap items-end gap-3">
               <label className="block">
                 <span className="label">State</span>
-                <select name="state" defaultValue={selectedName} className="input min-w-[10rem]">
+                <AutoSubmitSelect name="state" defaultValue={selectedName} className="input min-w-[10rem]">
                   {usable.map((s) => (
                     <option key={s.id} value={s.name}>
                       {s.name}
                     </option>
                   ))}
-                </select>
+                </AutoSubmitSelect>
               </label>
               <label className="block">
                 <span className="label">City (optional)</span>
@@ -151,16 +166,29 @@ export default async function DealsPage({
                 <span className="label">Max price</span>
                 <input type="number" name="budget" defaultValue={budget} step={10000} min={0} className="input w-32" />
               </label>
-              <label className="block">
-                <span className="label">Type</span>
-                <select name="type" defaultValue={houseType ?? ""} className="input">
-                  <option value="">Any</option>
-                  <option value="house">House</option>
-                  <option value="condo">Condo</option>
-                  <option value="townhouse">Townhouse</option>
-                  <option value="multifamily">Multi-family</option>
-                </select>
-              </label>
+              <fieldset className="block">
+                <span className="label">Home type (any checked = only those)</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-sm">
+                  {([
+                    ["house", "House"],
+                    ["condo", "Condo"],
+                    ["townhouse", "Townhouse"],
+                    ["multifamily", "Multi-family"],
+                    ["land", "Land"],
+                  ] as const).map(([v, label]) => (
+                    <label key={v} className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        name="type"
+                        value={v}
+                        defaultChecked={pickedTypes.includes(v)}
+                        className="accent-[var(--brand)]"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <label className="block">
                 <span className="label">Beds</span>
                 <input type="number" name="beds" defaultValue={minBeds || ""} placeholder="any" min={0} max={10} className="input w-20" />
@@ -202,11 +230,32 @@ export default async function DealsPage({
                 <input type="checkbox" name="basement" value="1" defaultChecked={wantBasement} className="accent-[var(--brand)]" />
                 Basement
               </label>
+              <fieldset className="block">
+                <span className="label">Listed by (any checked = only those)</span>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-sm">
+                  {([
+                    ["agent", "Agent"],
+                    ["owner", "Owner (FSBO)"],
+                    ["new", "New construction"],
+                  ] as const).map(([v, label]) => (
+                    <label key={v} className="flex items-center gap-1.5">
+                      <input
+                        type="checkbox"
+                        name="lt"
+                        value={v}
+                        defaultChecked={pickedListingTypes.includes(v)}
+                        className="accent-[var(--brand)]"
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <button className="btn">Search</button>
             </div>
             <p className="text-xs text-[var(--muted)]">
               Min price defaults to $10,000 to keep out $1 auction teasers; set it to 0 to include
-              them. Garage/parking can&apos;t be filtered by the feed.
+              them. Garage/parking and foreclosure status can&apos;t be filtered by the feed.
             </p>
           </form>
 

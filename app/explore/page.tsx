@@ -4,6 +4,8 @@ import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
 import { statesList, metrosForState, metricHistory, latestMetric, listAlertRules, dbConfigured } from "@/lib/queries";
 import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
+import AutoSubmitSelect from "@/components/AutoSubmitSelect";
+import { getProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,9 @@ export default async function ExplorePage({
 }) {
   const { geo, metro } = await searchParams;
   const states = await statesList();
-  const stateId = geo ? Number(geo) : states[0]?.id;
+  const profile = await getProfile();
+  const homeStateId = states.find((s) => s.name === profile.homeState)?.id;
+  const stateId = geo ? Number(geo) : homeStateId ?? states[0]?.id;
   const state = states.find((s) => s.id === stateId);
 
   const metros = stateId ? await metrosForState(stateId) : [];
@@ -69,13 +73,13 @@ export default async function ExplorePage({
           <form className="flex flex-wrap items-end gap-3">
             <label className="block">
               <span className="label">State</span>
-              <select name="geo" defaultValue={String(stateId)} className="input min-w-[10rem]">
+              <AutoSubmitSelect name="geo" defaultValue={String(stateId)} className="input min-w-[10rem]">
                 {states.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
-              </select>
+              </AutoSubmitSelect>
             </label>
             <label className="block">
               <span className="label">Metro area</span>

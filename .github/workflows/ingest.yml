@@ -42,6 +42,8 @@ jobs:
         run: npm run ingest:realtor
       - name: Ingest Redfin metro tracker (metro market heat)
         run: npm run ingest:redfin-metro
+      - name: Ingest Redfin city tracker (city market heat)
+        run: npm run ingest:redfin-city
       - name: Ingest FHFA state HPI
         run: npm run ingest:fhfa
       - name: Ingest Census ACS (state income; skips without key)

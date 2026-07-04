@@ -26,7 +26,7 @@ const UA =
 export type { CityRegion } from "@/lib/sources/redfin-cities";
 import { REDFIN_CITY_REGION_IDS, type CityRegion } from "@/lib/sources/redfin-cities";
 
-/** Parse /city/{id}/{ST}/{Slug} links out of a Redfin state-page HTML blob. */
+/** Parse /city/{id}/{ST}/{Slug} links out of Redfin state-page HTML (used by the map generator; tested). */
 export function parseCityLinks(html: string): CityRegion[] {
   const out = new Map<string, CityRegion>();
   for (const m of html.matchAll(/\/city\/(\d+)\/[A-Z]{2}\/([A-Za-z0-9-]+)/g)) {
@@ -91,14 +91,22 @@ export interface ListingFilters {
   /** Require a basement (finished, partially finished, or unfinished). */
   basement?: boolean;
   /** Property types; defaults to houses + condos + townhouses + multi-family. */
-  types?: ("house" | "condo" | "townhouse" | "multifamily")[];
+  types?: ("house" | "condo" | "townhouse" | "multifamily" | "land")[];
+  /**
+   * Listing types (verified sf groups): agent-listed (sf 1,2), for-sale-by-owner (sf 3),
+   * new construction incl. to-be-built (sf 5,6). Foreclosures are NOT a distinguishable
+   * group in this feed (sf 7 returns the same set as sf 1) and auctions are only
+   * excludable via minPrice, so neither is offered. Defaults to all three.
+   */
+  listingTypes?: ("agent" | "owner" | "new")[];
   /** Search a specific city (Redfin region id, region_type 6) instead of the whole state. */
   cityRegionId?: number;
   /** Fallback for cities without a known region id: filter results by city name. */
   cityName?: string;
 }
 
-const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4" };
+const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4", land: "5" };
+const SF_CODES: Record<string, string[]> = { agent: ["1", "2"], owner: ["3"], new: ["5", "6"] };
 
 function searchParams(opts: { stateName: string; limit?: number } & ListingFilters): URLSearchParams | null {
   const regionId = REDFIN_STATE_REGION_IDS[opts.stateName];
@@ -106,6 +114,7 @@ function searchParams(opts: { stateName: string; limit?: number } & ListingFilte
   const types = (opts.types?.length ? opts.types : ["house", "condo", "townhouse", "multifamily"])
     .map((t) => TYPE_CODES[t])
     .filter(Boolean);
+  const sf = [...new Set((opts.listingTypes?.length ? opts.listingTypes : ["agent", "owner", "new"]).flatMap((t) => SF_CODES[t] ?? []))];
   const params = new URLSearchParams({
     al: "1",
     num_homes: String(Math.min(opts.limit ?? 350, 350)),
@@ -113,7 +122,7 @@ function searchParams(opts: { stateName: string; limit?: number } & ListingFilte
     region_type: opts.cityRegionId ? "6" : "4",
     status: "9", // active + coming soon
     uipt: types.join(","),
-    sf: "1,2,3,5,6,7",
+    sf: sf.length ? sf.join(",") : "1,2,3,5,6",
     v: "8",
     // The filter params below are IGNORED unless these site-companion params ride along.
     ord: "price-asc",

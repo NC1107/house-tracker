@@ -191,6 +191,22 @@ async function metrosWithMarketDataRaw(stateId: number): Promise<{ id: number; n
   }, [] as { id: number; name: string }[]);
 }
 
+/** Cities of a state that have at least one Redfin market-heat metric ingested. */
+async function citiesWithMarketDataRaw(stateId: number): Promise<{ id: number; name: string }[]> {
+  return safe(async () => {
+    const db = getDb();
+    const rows = await db.execute(sql`
+      select distinct g.id as id, g.name as name
+      from geographies g
+      join metric_series ms on ms.geography_id = g.id
+      where g.level = 'city' and g.parent_id = ${stateId}
+        and ms.metric_key in ('months_of_supply', 'days_on_market', 'price_drops_share', 'sale_to_list', 'inventory')
+      order by g.name
+    `);
+    return rows as unknown as { id: number; name: string }[];
+  }, [] as { id: number; name: string }[]);
+}
+
 /** State geography ids that have at least one Redfin market-heat metric ingested. */
 // Returns an array (not a Set): results pass through the JSON cache, which drops Sets.
 async function statesWithMarketDataRaw(): Promise<number[]> {
@@ -218,3 +234,4 @@ export const metrosForState = cachedQuery("metrosForState", metrosForStateRaw);
 export const statesList = cachedQuery("statesList", statesListRaw);
 export const statesWithMarketData = cachedQuery("statesWithMarketData", statesWithMarketDataRaw);
 export const metrosWithMarketData = cachedQuery("metrosWithMarketData", metrosWithMarketDataRaw);
+export const citiesWithMarketData = cachedQuery("citiesWithMarketData", citiesWithMarketDataRaw);

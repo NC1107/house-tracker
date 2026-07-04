@@ -10,9 +10,16 @@ export const dynamic = "force-dynamic";
 export default async function DealsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ state?: string; budget?: string }>;
+  searchParams: Promise<{
+    state?: string;
+    budget?: string;
+    beds?: string;
+    baths?: string;
+    stories?: string;
+    basement?: string;
+  }>;
 }) {
-  const { state: stateParam, budget: budgetParam } = await searchParams;
+  const { state: stateParam, budget: budgetParam, beds, baths, stories, basement } = await searchParams;
   const [states, rateRow, profile] = await Promise.all([
     statesList(),
     latestMortgageRate("30yr"),
@@ -33,9 +40,29 @@ export default async function DealsPage({
   const usable = states.filter((s) => REDFIN_STATE_REGION_IDS[s.name]);
   const selectedName = usable.some((s) => s.name === stateParam) ? stateParam! : usable[0]?.name;
 
+  const minBeds = Math.max(0, Number(beds) || 0);
+  const minBaths = Math.max(0, Number(baths) || 0);
+  const minStories = Math.max(0, Number(stories) || 0);
+  const wantBasement = basement === "1";
+
   const listings = selectedName
-    ? await fetchLiveListings({ stateName: selectedName, maxPrice: budget })
+    ? await fetchLiveListings({
+        stateName: selectedName,
+        maxPrice: budget,
+        minBeds: minBeds || undefined,
+        minBaths: minBaths || undefined,
+        minStories: minStories || undefined,
+        basement: wantBasement,
+      })
     : [];
+  const filterSummary = [
+    minBeds ? `${minBeds}+ bd` : null,
+    minBaths ? `${minBaths}+ ba` : null,
+    minStories > 1 ? `${minStories}+ stories` : null,
+    wantBasement ? "basement" : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div className="space-y-6">
@@ -70,6 +97,22 @@ export default async function DealsPage({
                 className="input max-w-[11rem]"
               />
             </label>
+            <label className="block">
+              <span className="label">Beds</span>
+              <input type="number" name="beds" defaultValue={minBeds || ""} placeholder="any" min={0} max={10} className="input w-20" />
+            </label>
+            <label className="block">
+              <span className="label">Baths</span>
+              <input type="number" name="baths" defaultValue={minBaths || ""} placeholder="any" min={0} max={10} className="input w-20" />
+            </label>
+            <label className="block">
+              <span className="label">Stories</span>
+              <input type="number" name="stories" defaultValue={minStories || ""} placeholder="any" min={0} max={4} className="input w-20" />
+            </label>
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <input type="checkbox" name="basement" value="1" defaultChecked={wantBasement} className="accent-[var(--brand)]" />
+              Basement
+            </label>
             <button className="btn">Search</button>
           </form>
 
@@ -84,7 +127,8 @@ export default async function DealsPage({
               <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-semibold">
                   {listings.length}
-                  {listings.length >= 350 ? "+" : ""} homes under {usd(budget)} in {selectedName}
+                  {listings.length >= 350 ? "+" : ""} homes under {usd(budget)}
+                  {filterSummary ? ` (${filterSummary})` : ""} in {selectedName}
                 </h2>
                 <span className="text-xs text-[var(--muted)]">cheapest first; sample of up to 350</span>
               </div>
@@ -135,7 +179,9 @@ export default async function DealsPage({
           <p className="text-xs text-[var(--muted)]">
             Experimental: uses Redfin&apos;s unofficial listing export, refreshed at most every 15
             minutes. Listing data belongs to the originating MLS; always verify on the listing
-            page. If this page stops returning homes, the endpoint has likely changed.
+            page. Garage/parking can&apos;t be filtered through this feed, so check listings for
+            it. Want an email when a match appears? Save these filters as an alert on the
+            Alerts page. If this page stops returning homes, the endpoint has likely changed.
           </p>
         </>
       )}

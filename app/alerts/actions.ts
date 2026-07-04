@@ -24,6 +24,16 @@ export async function createAlert(formData: FormData) {
     params = { geographyId, minScore: num(formData.get("minScore"), 60) };
   } else if (type === "price_move") {
     params = { geographyId, pctThreshold: num(formData.get("pctThreshold"), 3), direction: String(formData.get("direction") || "down") };
+  } else if (type === "listing_match") {
+    params = {
+      stateName: String(formData.get("stateName") || ""),
+      maxPrice: num(formData.get("maxPrice"), 400_000),
+      minBeds: num(formData.get("minBeds"), 0),
+      minBaths: num(formData.get("minBaths"), 0),
+      minStories: num(formData.get("minStories"), 0),
+      basement: formData.get("basement") === "1",
+    };
+    if (!params.stateName) return;
   } else {
     return;
   }

@@ -2,6 +2,7 @@ import { PageHeader, Card, EmptyNote } from "@/components/ui";
 import AddAlertForm from "@/components/AddAlertForm";
 import { listAlertRules, statesList, dbConfigured } from "@/lib/queries";
 import { deleteAlert, sendTest } from "./actions";
+import { describeListingFilters } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,9 @@ function describe(rule: { type: string; params: Record<string, unknown> }, state
   if (rule.type === "price_move") {
     const dir = p.direction === "up" ? "rise" : p.direction === "any" ? "move" : "fall";
     return `${stateName(p.geographyId as number)} prices ${dir} by ≥ ${p.pctThreshold}% YoY`;
+  }
+  if (rule.type === "listing_match") {
+    return `New listing in ${p.stateName}: ${describeListingFilters(p)}`;
   }
   return rule.type;
 }

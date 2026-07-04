@@ -37,7 +37,29 @@ export interface LiveListing {
   daysOnMarket: number | null;
   propertyType: string;
   url: string;
+  /** MLS number when present; used to recognize a listing across runs. */
+  mls: string;
 }
+
+/**
+ * Search filters. Verified against the endpoint per-param (Wyoming test market):
+ * num_beds / min_stories / basement_types / max_price / uipt all shrink result sets
+ * server-side. Garage/parking params are IGNORED by this feed and the CSV has no
+ * garage column, so garage cannot be filtered - don't offer it upstream.
+ * Beds/baths are additionally re-checked client-side from the CSV as belt and braces.
+ */
+export interface ListingFilters {
+  maxPrice?: number;
+  minBeds?: number;
+  minBaths?: number;
+  minStories?: number;
+  /** Require a basement (finished, partially finished, or unfinished). */
+  basement?: boolean;
+  /** Property types; defaults to houses + condos + townhouses + multi-family. */
+  types?: ("house" | "condo" | "townhouse" | "multifamily")[];
+}
+
+const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4" };
 
 /**
  * Fetch a sample of active listings for a state, optionally capped at a max price.
@@ -45,24 +67,30 @@ export interface LiveListing {
  */
 export async function fetchLiveListings(opts: {
   stateName: string;
-  maxPrice?: number;
   limit?: number;
-}): Promise<LiveListing[]> {
+} & ListingFilters): Promise<LiveListing[]> {
   const regionId = REDFIN_STATE_REGION_IDS[opts.stateName];
   if (!regionId) return [];
+  const types = (opts.types?.length ? opts.types : ["house", "condo", "townhouse", "multifamily"])
+    .map((t) => TYPE_CODES[t])
+    .filter(Boolean);
   const params = new URLSearchParams({
     al: "1",
     num_homes: String(Math.min(opts.limit ?? 350, 350)),
     region_id: String(regionId),
     region_type: "4",
     status: "9", // active + coming soon
-    uipt: "1,2,3,4", // house, condo, townhouse, multi-family
+    uipt: types.join(","),
     sf: "1,2,3,5,6,7",
     v: "8",
   });
   if (opts.maxPrice && Number.isFinite(opts.maxPrice)) {
     params.set("max_price", String(Math.round(opts.maxPrice)));
   }
+  if (opts.minBeds && opts.minBeds > 0) params.set("num_beds", String(opts.minBeds));
+  if (opts.minBaths && opts.minBaths > 0) params.set("num_baths", String(opts.minBaths));
+  if (opts.minStories && opts.minStories > 1) params.set("min_stories", String(opts.minStories));
+  if (opts.basement) params.set("basement_types", "1,2,3"); // finished, unfinished, partial
   const url = `https://www.redfin.com/stingray/api/gis-csv?${params}`;
 
   let text: string;
@@ -102,6 +130,12 @@ export async function fetchLiveListings(opts: {
     if (row.length < header.length - 2) continue; // note/disclaimer rows
     const price = Number(row[priceCol]);
     if (!Number.isFinite(price) || price <= 0) continue;
+    const beds = num(row, "beds");
+    const baths = num(row, "baths");
+    // Re-check what the CSV can prove, in case the endpoint ignores a param someday.
+    if (opts.maxPrice && price > opts.maxPrice) continue;
+    if (opts.minBeds && beds !== null && beds < opts.minBeds) continue;
+    if (opts.minBaths && baths !== null && baths < opts.minBaths) continue;
     const sqft = num(row, "square feet");
     out.push({
       address: row[need("address")] ?? "",
@@ -109,13 +143,14 @@ export async function fetchLiveListings(opts: {
       state: row[need("state or province")] ?? "",
       zip: row[need("zip or postal code")] ?? "",
       price,
-      beds: num(row, "beds"),
-      baths: num(row, "baths"),
+      beds,
+      baths,
       sqft,
       pricePerSqft: num(row, "$/square feet"),
       daysOnMarket: num(row, "days on market"),
       propertyType: row[need("property type")] ?? "",
       url: row[urlIdx] ?? "",
+      mls: (row[need("mls#")] ?? "").trim(),
     });
   }
   return out.sort((a, b) => a.price - b.price);

@@ -125,6 +125,14 @@ Set `RESEND_API_KEY` (free at resend.com) and `ALERT_EMAIL` (your address) in `.
 rules on the **Alerts** page, and the daily job (`npm run alerts:run`, already wired into the
 ingest workflow / crontab) emails you when a rule fires. Use "Send test email" to verify.
 
+Saved-search alerts ("a home matching my filters hits the market") check live listings on
+the same schedule. Homes move fast; to check more often than daily, add a second crontab
+entry running just `alerts:run` (it is cheap), e.g. every 2 hours:
+
+```
+0 */2 * * * cd /path/to/house-tracker && docker compose --profile tools run --rm tools npm run alerts:run >> /var/log/house-tracker-alerts.log 2>&1
+```
+
 ### Keeping data fresh
 
 Ingestion is a one-shot command. To refresh nightly, add a host crontab entry:

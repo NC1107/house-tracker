@@ -14,14 +14,18 @@ type DpKind = "percent" | "amount";
 export default function AffordabilityCalculator({
   defaultRate = 6.8,
   defaultIncome = 120_000,
+  defaultDownPct = 20,
+  defaultDebts = 400,
 }: {
   defaultRate?: number;
   defaultIncome?: number;
+  defaultDownPct?: number;
+  defaultDebts?: number;
 }) {
   const [income, setIncome] = useState(defaultIncome);
-  const [debts, setDebts] = useState(400);
+  const [debts, setDebts] = useState(defaultDebts);
   const [dpKind, setDpKind] = useState<DpKind>("percent");
-  const [dpPercent, setDpPercent] = useState(20);
+  const [dpPercent, setDpPercent] = useState(defaultDownPct);
   const [dpAmount, setDpAmount] = useState(80_000);
   const [rate, setRate] = useState(defaultRate);
   const [termYears, setTermYears] = useState(30);

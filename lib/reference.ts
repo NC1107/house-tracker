@@ -50,22 +50,27 @@ export interface BuyerSnapshot {
   medianCanAfford: boolean;
 }
 
-export function buyerSnapshot(rate: number): BuyerSnapshot {
-  const income = NATIONAL.medianHouseholdIncome;
+export function buyerSnapshot(
+  rate: number,
+  opts: { income?: number; downPct?: number; monthlyDebts?: number } = {},
+): BuyerSnapshot {
+  const income = opts.income ?? NATIONAL.medianHouseholdIncome;
+  const downPct = opts.downPct ?? NATIONAL.typicalDownPaymentPct;
+  const monthlyDebts = opts.monthlyDebts ?? 0;
   const price = NATIONAL.medianHomePrice;
-  const down: DownPaymentMode = { kind: "percent", percent: NATIONAL.typicalDownPaymentPct };
+  const down: DownPaymentMode = { kind: "percent", percent: downPct };
 
   // "Comfortable" uses the conservative 28/36 rule; "lender max" uses the 43% back-end.
   const comfortable = maxAffordablePrice({
     grossAnnualIncome: income,
-    monthlyDebts: 0,
+    monthlyDebts,
     downPayment: down,
     annualRatePct: rate,
     guideline: GUIDELINES.conventional_classic,
   });
   const lenderMax = maxAffordablePrice({
     grossAnnualIncome: income,
-    monthlyDebts: 0,
+    monthlyDebts,
     downPayment: down,
     annualRatePct: rate,
     guideline: GUIDELINES.qm,
@@ -73,7 +78,7 @@ export function buyerSnapshot(rate: number): BuyerSnapshot {
 
   const piti = computePiti({
     homePrice: price,
-    downPayment: price * NATIONAL.typicalDownPaymentPct,
+    downPayment: price * downPct,
     annualRatePct: rate,
     guideline: GUIDELINES.conventional_classic,
   });
@@ -81,7 +86,7 @@ export function buyerSnapshot(rate: number): BuyerSnapshot {
   const req = requiredIncomeForPrice({
     homePrice: price,
     downPayment: down,
-    monthlyDebts: 0,
+    monthlyDebts,
     annualRatePct: rate,
     guideline: GUIDELINES.conventional_classic,
   });
@@ -103,7 +108,7 @@ export function buyerSnapshot(rate: number): BuyerSnapshot {
     incomeForMedianHome: req.requiredAnnualIncome,
     cashToClose: cashToClose({
       homePrice: price,
-      downPayment: price * NATIONAL.typicalDownPaymentPct,
+      downPayment: price * downPct,
       monthlyPiti: piti.total,
     }),
     downPayment20,

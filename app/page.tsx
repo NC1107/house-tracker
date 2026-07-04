@@ -4,6 +4,8 @@ import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/compon
 import { ChartCard } from "@/components/ChartCard";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
+import { getProfile } from "@/lib/profile";
+import ProfileForm from "@/components/ProfileForm";
 import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
 import { usd, pct } from "@/lib/format";
 import { CHART } from "@/lib/chartTheme";
@@ -24,7 +26,8 @@ export default async function OverviewPage() {
   const rateChart = dailyRate.length > 0 ? dailyRate : rates;
 
   const currentRate = rate?.rate ?? 6.8;
-  const snap = buyerSnapshot(currentRate);
+  const profile = await getProfile();
+  const snap = buyerSnapshot(currentRate, profile);
 
   // Derived buying-power trends (the "true cost" story buyers care about most).
   const paymentTrend = paymentToBuySeries(medianPrice, rates);
@@ -37,14 +40,16 @@ export default async function OverviewPage() {
     <div className="space-y-8">
       <PageHeader
         title="Can we afford a home?"
-        subtitle="The national picture for a typical American household — prices, rates, and what they mean for buying."
+        subtitle="Prices, rates, and what they mean for buying — set your numbers to make it about you."
       />
 
-      {/* Hero: the median household's buying power */}
+      <ProfileForm income={profile.income} downPct={profile.downPct} monthlyDebts={profile.monthlyDebts} isCustom={profile.isCustom} />
+
+      {/* Hero: the household's buying power */}
       <Card className="bg-gradient-to-br from-[var(--surface)] to-[var(--surface-2)]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="badge">Median US household</span>
+            <span className="badge">{profile.isCustom ? "Your household" : "Median US household"}</span>
             <p className="mt-3 text-sm text-[var(--text-2)]">
               Earning <strong className="text-[var(--text-1)]">{usd(snap.medianIncome)}</strong>/yr, at today&apos;s{" "}
               <strong className="text-[var(--text-1)]">{currentRate.toFixed(2)}%</strong> rate, can comfortably afford

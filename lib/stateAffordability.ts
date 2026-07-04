@@ -19,14 +19,14 @@ export interface StateAffordability {
 
 export function computeStateAffordability(
   homeValue: number,
-  nationalIncome: number,
+  income: number,
   rate: number,
-  opts: { propertyTaxRate?: number; insuranceRate?: number } = {},
+  opts: { propertyTaxRate?: number; insuranceRate?: number; monthlyDebts?: number; downPct?: number } = {},
 ): StateAffordability {
   const req = requiredIncomeForPrice({
     homePrice: homeValue,
-    downPayment: { kind: "percent", percent: 0.15 },
-    monthlyDebts: 0,
+    downPayment: { kind: "percent", percent: opts.downPct ?? 0.15 },
+    monthlyDebts: opts.monthlyDebts ?? 0,
     annualRatePct: rate,
     propertyTaxRate: opts.propertyTaxRate,
     insuranceRate: opts.insuranceRate,
@@ -34,10 +34,10 @@ export function computeStateAffordability(
   });
   return {
     homeValue,
-    priceToIncome: +(homeValue / nationalIncome).toFixed(1),
+    priceToIncome: +(homeValue / income).toFixed(1),
     requiredIncome: Math.round(req.requiredAnnualIncome),
     monthlyPayment: Math.round(req.piti.total),
-    affordable: req.requiredAnnualIncome <= nationalIncome,
+    affordable: req.requiredAnnualIncome <= income,
   };
 }
 

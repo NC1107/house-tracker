@@ -4,7 +4,8 @@ import { statePaths } from "@/lib/geo/usStates";
 import { latestMetricByState, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { computeStateAffordability, affordabilityColor } from "@/lib/stateAffordability";
 import { statePropertyTaxRate, stateInsuranceRate } from "@/lib/geo/stateCosts";
-import { NATIONAL } from "@/lib/reference";
+import { getProfile } from "@/lib/profile";
+import ProfileForm from "@/components/ProfileForm";
 import { usd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ export default async function WherePage() {
     latestMetricByState("zhvi_all"),
   ]);
   const rate = rateRow?.rate ?? 6.8;
-  const income = NATIONAL.medianHouseholdIncome;
+  const profile = await getProfile();
+  const income = profile.income;
   const geo = statePaths();
 
   const data: StateDatum[] = states
@@ -23,6 +25,8 @@ export default async function WherePage() {
       const a = computeStateAffordability(s.value, income, rate, {
         propertyTaxRate: statePropertyTaxRate(s.stateCode),
         insuranceRate: stateInsuranceRate(s.stateCode),
+        monthlyDebts: profile.monthlyDebts,
+        downPct: profile.downPct,
       });
       return { stateCode: s.stateCode, name: s.name, ...a };
     })
@@ -34,9 +38,12 @@ export default async function WherePage() {
     <div className="space-y-6">
       <PageHeader
         title="Where Can We Afford?"
-        subtitle={`Every state colored by how affordable its typical home is to the median US household ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`}
+        subtitle={`Every state colored by how its typical home compares to ${profile.isCustom ? "your" : "the median US"} household income ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`}
         action={<Freshness date={states.map((s) => s.date).sort().at(-1)} label="Home values through" />}
       />
+
+      <ProfileForm income={profile.income} downPct={profile.downPct} monthlyDebts={profile.monthlyDebts} isCustom={profile.isCustom} />
+
 
       {!dbConfigured() || data.length === 0 ? (
         <EmptyNote>
@@ -49,7 +56,7 @@ export default async function WherePage() {
             <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-semibold">Affordability by state</h2>
               <span className="text-xs text-[var(--muted)]">
-                {affordableCount} of {data.length} states affordable to the median household
+                {affordableCount} of {data.length} states affordable to {profile.isCustom ? "your" : "the median"} household
               </span>
             </div>
             <ChoroplethMap paths={geo.paths} width={geo.width} height={geo.height} data={data} />

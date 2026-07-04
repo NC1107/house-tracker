@@ -1,6 +1,7 @@
 import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
 import { statesList, latestMetric, metricYoY, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
+import { Term } from "@/components/Term";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function MarketPage({
                   {heat.components.map((c) => (
                     <div key={c.key}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <span className="text-[var(--text-2)]">{c.label}</span>
+                        <span className="text-[var(--text-2)]"><Term term={c.label}>{c.label}</Term></span>
                         <span className="tabular-nums text-[var(--muted)]">
                           {fmt[c.key](c.value)} · score {c.score}
                         </span>

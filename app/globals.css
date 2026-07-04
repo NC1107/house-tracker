@@ -13,7 +13,7 @@
   --surface-2: #f8fafc;
   --text-1: #0f172a;
   --text-2: #475569;
-  --muted: #94a3b8;
+  --muted: #5b6b82; /* AA-contrast for small text on white */
   --border: rgba(15, 23, 42, 0.08);
   --grid: #e6eaf1;
   --brand: #2a78d6;
@@ -33,7 +33,7 @@ html.dark {
   --surface-2: #0f1626;
   --text-1: #f1f5f9;
   --text-2: #a3b0c2;
-  --muted: #64748b;
+  --muted: #8a99ad; /* AA-contrast for small text on dark surface */
   --border: rgba(255, 255, 255, 0.09);
   --grid: #1e293b;
   --brand: #3987e5;
@@ -50,7 +50,7 @@ html.dark {
     --surface-2: #0f1626;
     --text-1: #f1f5f9;
     --text-2: #a3b0c2;
-    --muted: #64748b;
+    --muted: #8a99ad;
     --border: rgba(255, 255, 255, 0.09);
     --grid: #1e293b;
     --brand: #3987e5;
@@ -63,6 +63,17 @@ body {
   background-color: var(--plane);
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus on all interactive elements. */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ---------------------------------------------------------------------------

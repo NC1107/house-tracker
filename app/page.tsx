@@ -2,6 +2,7 @@ import Link from "next/link";
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/components/ui";
 import { ChartCard } from "@/components/ChartCard";
+import { Term } from "@/components/Term";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
 import { getProfile } from "@/lib/profile";
@@ -94,9 +95,9 @@ export default async function OverviewPage() {
         </SectionTitle>
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="30-yr fixed rate" value={rate ? `${rate.rate.toFixed(2)}%` : `${currentRate.toFixed(2)}%`} sub={rate ? `as of ${rate.date}` : "reference (ingest FRED for live)"} />
-          <Stat label="Monthly payment (PITI)" value={usd(snap.medianHomePayment)} sub={`on a ${usd(snap.medianHomePrice)} home`} />
-          <Stat label="Housing cost burden" value={pct(snap.housingBurden, 0)} sub="of gross income · <30% is comfortable" tone={burdenTone} />
-          <Stat label="Price-to-income" value={`${snap.priceToIncome.toFixed(1)}×`} sub="home price ÷ median income" tone={p2iTone} />
+          <Stat label={<>Monthly payment (<Term term="PITI" />)</>} value={usd(snap.medianHomePayment)} sub={`on a ${usd(snap.medianHomePrice)} home`} />
+          <Stat label={<Term term="housing cost burden">Housing cost burden</Term>} value={pct(snap.housingBurden, 0)} sub="of gross income · <30% is comfortable" tone={burdenTone} />
+          <Stat label={<Term term="price-to-income">Price-to-income</Term>} value={`${snap.priceToIncome.toFixed(1)}×`} sub="home price ÷ income" tone={p2iTone} />
           <Stat label="Income to comfortably buy" value={usd(snap.incomeForMedianHome)} sub="at ≤28% housing (28/36 rule)" />
           <Stat label="Cash to buy" value={usd(snap.cashToClose.total)} sub="down + closing + ~2mo reserves" hint="upfront" />
           <Stat label="20% down" value={usd(snap.downPayment20)} sub={`~${snap.yearsToSaveDownPayment.toFixed(0)} yrs at 10% savings`} />

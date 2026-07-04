@@ -96,10 +96,10 @@ function Delta({ label, now, later, delta, suffix = "" }: { label: string; now: 
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="label">{label}</label>
+    <label className="block">
+      <span className="label">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -109,6 +109,7 @@ function Num({ v, set, prefix, suffix, step = 1 }: { v: number; set: (n: number)
       {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{prefix}</span>}
       <input
         type="number"
+        min={0}
         className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
         value={Number.isFinite(v) ? v : 0}
         step={step}

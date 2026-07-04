@@ -57,8 +57,17 @@ export default function ChoroplethMap({
               strokeWidth={isActive ? 1.5 : 0.75}
               style={{ cursor: d ? "pointer" : "default", transition: "opacity .1s" }}
               opacity={hover && !isActive ? 0.72 : 1}
+              tabIndex={d ? 0 : -1}
+              role={d ? "button" : undefined}
+              aria-label={
+                d
+                  ? `${p.name}: ${d.priceToIncome}× income, ${d.affordable ? "affordable" : "above budget"} — see the ranked table for details`
+                  : undefined
+              }
               onMouseEnter={() => p.stateCode && setHover(p.stateCode)}
               onMouseLeave={() => setHover(null)}
+              onFocus={() => p.stateCode && setHover(p.stateCode)}
+              onBlur={() => setHover(null)}
             >
               <title>{d ? `${p.name}: ${d.priceToIncome}× income` : p.name}</title>
             </path>

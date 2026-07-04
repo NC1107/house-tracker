@@ -40,7 +40,7 @@ export function Stat({
   tone = "neutral",
   hint,
 }: {
-  label: string;
+  label: ReactNode;
   value: ReactNode;
   sub?: ReactNode;
   tone?: Tone;

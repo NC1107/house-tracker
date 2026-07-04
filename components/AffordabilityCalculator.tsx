@@ -251,10 +251,10 @@ export default function AffordabilityCalculator({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
-      <label className="label">{label}</label>
+    <label className="block">
+      <span className="label">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -276,6 +276,7 @@ function NumberInput({
       {prefix && <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{prefix}</span>}
       <input
         type="number"
+        min={0}
         className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
         value={Number.isFinite(value) ? value : 0}
         step={step}

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import ThemeToggle from "@/components/ThemeToggle";
+import NavLinks from "@/components/NavLinks";
 
 // Set the theme before paint to avoid a flash of the wrong mode.
 const themeInit = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();`;
@@ -18,18 +19,6 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const nav = [
-  { href: "/", label: "Overview" },
-  { href: "/trends", label: "Trends" },
-  { href: "/explore", label: "Region Explorer" },
-  { href: "/where", label: "Where to Buy" },
-  { href: "/affordability", label: "Affordability" },
-  { href: "/rent-vs-buy", label: "Rent vs. Buy" },
-  { href: "/timing", label: "Cost of Waiting" },
-  { href: "/market", label: "Market Heat" },
-  { href: "/alerts", label: "Alerts" },
-];
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -45,17 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </Link>
                 <ThemeToggle className="sm:hidden" />
               </div>
-              <nav className="-mx-4 flex flex-1 gap-1 overflow-x-auto px-4 text-sm sm:mx-0 sm:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {nav.map((n) => (
-                  <Link
-                    key={n.href}
-                    href={n.href}
-                    className="whitespace-nowrap rounded-lg px-3 py-1.5 text-[var(--text-2)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-1)]"
-                  >
-                    {n.label}
-                  </Link>
-                ))}
-              </nav>
+              <NavLinks />
               <ThemeToggle className="hidden sm:inline-flex" />
             </div>
           </header>

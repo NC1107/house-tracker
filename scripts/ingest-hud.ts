@@ -43,14 +43,31 @@ async function main() {
         continue;
       }
       const body = (await res.json()) as {
-        data?: { year?: string; counties?: { "FMR 2"?: number | string }[]; metroareas?: { "FMR 2"?: number | string }[] };
+        data?: {
+          year?: string;
+          counties?: Record<string, unknown>[];
+          metroareas?: Record<string, unknown>[];
+        };
       };
       const year = Number(body.data?.year);
       const areas = [...(body.data?.counties ?? []), ...(body.data?.metroareas ?? [])];
+      // HUD has shipped both spellings ("Two-Bedroom" currently; "FMR 2" historically).
       const twoBed = median(
-        areas.map((c) => Number(c["FMR 2"])).filter((v) => Number.isFinite(v) && v > 0),
+        areas
+          .map((c) => Number(c["Two-Bedroom"] ?? c["FMR 2"]))
+          .filter((v) => Number.isFinite(v) && v > 0),
       );
-      if (!twoBed || !Number.isFinite(year)) continue;
+      if (!twoBed || !Number.isFinite(year)) {
+        // A response with areas but no parsable rents means the schema drifted again --
+        // say so loudly instead of quietly ingesting nothing.
+        if (areas.length > 0) {
+          console.warn(
+            `HUD ${st.abbr}: ${areas.length} areas but no parsable 2BR rent; ` +
+              `known keys: ${Object.keys(areas[0] ?? {}).join(", ")}`,
+          );
+        }
+        continue;
+      }
       out.push({
         geographyId: st.id,
         metricKey: "fmr_2br",

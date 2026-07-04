@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Item = { href: string; label: string };
 type Group = { label: string; items: Item[] };
@@ -63,25 +64,52 @@ export default function NavLinks() {
   );
 }
 
+const MENU_WIDTH = 176; // px, matches min-w-[11rem]
+
 function NavGroup({ group, pathname }: { group: Group; pathname: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const groupActive = group.items.some((i) => isActive(pathname, i.href));
 
-  // Close on outside click / Escape.
+  // The nav is a horizontal scroll container on small screens, which would clip an
+  // absolutely-positioned menu — so the menu portals to <body> with fixed positioning,
+  // anchored to the trigger and clamped to the viewport.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const rect = ref.current?.getBoundingClientRect();
+    if (!rect) return;
+    const left = Math.max(8, Math.min(rect.left, window.innerWidth - MENU_WIDTH - 8));
+    setPos({ top: rect.bottom + 4, left });
+  }, [open]);
+
+  // Close on outside click, Escape, scroll, or resize (the anchor moves out from under it).
   useEffect(() => {
     if (!open) return;
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    function onDown(e: MouseEvent | TouchEvent) {
+      const t = e.target as Node;
+      if (ref.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
+    function onMove(e: Event) {
+      if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
+      setOpen(false);
+    }
     document.addEventListener("mousedown", onDown);
+    document.addEventListener("touchstart", onDown);
     document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onMove, { capture: true, passive: true });
+    window.addEventListener("resize", onMove);
     return () => {
       document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("touchstart", onDown);
       document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onMove, { capture: true });
+      window.removeEventListener("resize", onMove);
     };
   }, [open]);
 
@@ -100,27 +128,32 @@ function NavGroup({ group, pathname }: { group: Group; pathname: string }) {
         {group.label}
         <span aria-hidden className={`text-[0.6rem] transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute left-0 top-full z-30 mt-1 min-w-[11rem] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg"
-        >
-          {group.items.map((i) => {
-            const active = isActive(pathname, i.href);
-            return (
-              <Link
-                key={i.href}
-                href={i.href}
-                role="menuitem"
-                aria-current={active ? "page" : undefined}
-                className={`block rounded-lg px-3 py-2 ${active ? activeCls : idleCls}`}
-              >
-                {i.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      {open &&
+        pos &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ top: pos.top, left: pos.left, width: MENU_WIDTH }}
+            className="fixed z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1 shadow-lg"
+          >
+            {group.items.map((i) => {
+              const active = isActive(pathname, i.href);
+              return (
+                <Link
+                  key={i.href}
+                  href={i.href}
+                  role="menuitem"
+                  aria-current={active ? "page" : undefined}
+                  className={`block rounded-lg px-3 py-2 ${active ? activeCls : idleCls}`}
+                >
+                  {i.label}
+                </Link>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

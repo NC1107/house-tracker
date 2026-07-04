@@ -54,7 +54,7 @@ export function sanityCheck(rows: SeriesRow[]): void {
     const m = median(vals);
     const [lo, hi] = METRIC_SANITY[key];
     if (Number.isFinite(m) && (m < lo || m > hi)) {
-      console.warn(`[ingest] SANITY: ${key} median ${m} outside expected [${lo}, ${hi}] — unit drift?`);
+      console.warn(`[ingest] SANITY: ${key} median ${m} outside expected [${lo}, ${hi}], unit drift?`);
     }
   }
 }

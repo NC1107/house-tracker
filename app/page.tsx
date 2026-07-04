@@ -40,7 +40,7 @@ export default async function OverviewPage() {
     <div className="space-y-8">
       <PageHeader
         title="Can we afford a home?"
-        subtitle="Prices, rates, and what they mean for buying — set your numbers to make it about you."
+        subtitle="Prices, rates, and what they mean for buying. Set your numbers to make it about you."
       />
 
       {/* Hero: the household's buying power */}
@@ -56,7 +56,7 @@ export default async function OverviewPage() {
               {usd(snap.comfortableMaxPrice)}
             </p>
             <p className="mt-2 text-sm text-[var(--text-2)]">
-              The typical US home costs <strong className="text-[var(--text-1)]">{usd(snap.medianHomePrice)}</strong> —{" "}
+              The typical US home costs <strong className="text-[var(--text-1)]">{usd(snap.medianHomePrice)}</strong>,{" "}
               {snap.medianCanAfford ? (
                 <span className="font-medium text-[var(--good-ink)]">within a comfortable budget.</span>
               ) : (
@@ -67,7 +67,7 @@ export default async function OverviewPage() {
             </p>
             <p className="mt-1 text-xs text-[var(--muted)]">
               &ldquo;Comfortable&rdquo; = ≤28% of income on housing. A lender may approve up to{" "}
-              <strong className="text-[var(--text-2)]">{usd(snap.lenderMaxPrice)}</strong> (43% of income) — the max, not the comfortable choice.
+              <strong className="text-[var(--text-2)]">{usd(snap.lenderMaxPrice)}</strong> (43% of income), the max rather than the comfortable choice.
             </p>
           </div>
           <div className="w-full max-w-xs">
@@ -93,26 +93,26 @@ export default async function OverviewPage() {
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Stat label="30-yr fixed rate" value={rate ? `${rate.rate.toFixed(2)}%` : `${currentRate.toFixed(2)}%`} sub={rate ? `as of ${rate.date}` : "reference (ingest FRED for live)"} />
           <Stat label={<>Monthly payment (<Term term="PITI" />)</>} value={usd(snap.medianHomePayment)} sub={`on a ${usd(snap.medianHomePrice)} home`} />
-          <Stat label={<Term term="housing cost burden">Housing cost burden</Term>} value={pct(snap.housingBurden, 0)} sub="of gross income · <30% is comfortable" tone={burdenTone} />
+          <Stat label={<Term term="housing cost burden">Housing cost burden</Term>} value={pct(snap.housingBurden, 0)} sub="of gross income; under 30% is comfortable" tone={burdenTone} />
           <Stat label={<Term term="price-to-income">Price-to-income</Term>} value={`${snap.priceToIncome.toFixed(1)}×`} sub="home price ÷ income" tone={p2iTone} />
           <Stat label="Income to comfortably buy" value={usd(snap.incomeForMedianHome)} sub="at ≤28% housing (28/36 rule)" />
-          <Stat label="Cash to buy" value={usd(snap.cashToClose.total)} sub="down + closing + ~2mo reserves" hint="upfront" />
+          <Stat label="Cash to buy" value={usd(snap.cashToClose.total)} sub="down + closing + ~2mo reserves" />
           <Stat label="20% down" value={usd(snap.downPayment20)} sub={`~${snap.yearsToSaveDownPayment.toFixed(0)} yrs at 10% savings`} />
-          <Stat label="FHA 3.5% down" value={usd(snap.fhaDownPayment)} sub={`~${snap.fhaYearsToSave.toFixed(0)} yrs — the low-down path`} tone="good" />
+          <Stat label="FHA 3.5% down" value={usd(snap.fhaDownPayment)} sub={`~${snap.fhaYearsToSave.toFixed(0)} yrs, the low-down path`} tone="good" />
         </div>
       </div>
 
-      {/* Buying-power over time — the "true cost" story */}
+      {/* Buying-power over time: the "true cost" story */}
       {(paymentTrend.length > 0 || p2iTrend.length > 0) && (
         <div>
-          <SectionTitle hint="see the Trends page for more">Buying power over time</SectionTitle>
+          <SectionTitle>Buying power over time</SectionTitle>
           <div className="grid gap-4 lg:grid-cols-2">
             {paymentTrend.length > 0 && (
               <ChartCard
                 title="Monthly payment to buy the typical US home"
                 source="median price × rate"
                 direction="lower"
-                whatFor="The real monthly cost of the median home (full PITI, 15% down). The 2021→2023 spike is the rate shock — same house, far bigger payment."
+                whatFor="The real monthly cost of the median home (full PITI, 15% down). The 2021-2023 spike is the rate shock: same house, far bigger payment."
               >
                 <TimeSeriesChart data={paymentTrend} format="usd" color={CHART.series2} />
               </ChartCard>
@@ -122,9 +122,9 @@ export default async function OverviewPage() {
                 title="Home price-to-income ratio"
                 source="price ÷ income"
                 direction="lower"
-                whatFor="A valuation gauge — ~3–4× is historically normal, 5×+ is stretched."
+                whatFor="A valuation gauge. Around 3-4x income is historically normal; 5x+ is stretched."
               >
-                <TimeSeriesChart data={p2iTrend} format="number" color={CHART.series1} />
+                <TimeSeriesChart data={p2iTrend} format="ratio" color={CHART.series1} />
               </ChartCard>
             )}
           </div>
@@ -143,7 +143,7 @@ export default async function OverviewPage() {
           <Link href="/rent-vs-buy" className="font-medium text-[var(--brand)] underline">
             Rent vs. Buy
           </Link>{" "}
-          tools — they work without any data.
+          tools; they work without any data.
         </EmptyNote>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

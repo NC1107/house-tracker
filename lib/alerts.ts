@@ -34,7 +34,7 @@ export function evalRateThreshold(
   if (ctx.rate <= below) {
     return {
       fired: true,
-      message: `30-yr mortgage rate is ${ctx.rate.toFixed(2)}% — at or below your ${below}% target.`,
+      message: `30-yr mortgage rate is ${ctx.rate.toFixed(2)}%, at or below your ${below}% target.`,
       dedupeKey: `rate<=${below}@${ctx.date}`,
     };
   }
@@ -76,7 +76,7 @@ export function evalMarketHeat(
   if (ctx.score >= minScore) {
     return {
       fired: true,
-      message: `${rule.regionName ?? "A watched region"} buyer-leverage score is ${ctx.score} (≥ your ${minScore}) — more room to negotiate.`,
+      message: `${rule.regionName ?? "A watched region"} buyer-leverage score is ${ctx.score} (at or above your ${minScore}), more room to negotiate.`,
       dedupeKey: `heat>=${minScore}:${rule.id}@${ctx.date}`,
     };
   }
@@ -92,7 +92,7 @@ export function evalAffordability(
   if (ctx.requiredIncome <= ctx.income) {
     return {
       fired: true,
-      message: `${rule.regionName ?? "A watched region"} is now within your budget — it needs about ${usd(ctx.requiredIncome)} and you earn ${usd(ctx.income)}.`,
+      message: `${rule.regionName ?? "A watched region"} is now within your budget; it needs about ${usd(ctx.requiredIncome)} and you earn ${usd(ctx.income)}.`,
       dedupeKey: `afford:${rule.id}@${ctx.date}`,
     };
   }

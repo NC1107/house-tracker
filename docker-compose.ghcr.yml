@@ -15,6 +15,7 @@
 #   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run seed:geo
 #   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:fred
 #   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:zillow
+#   docker compose -f docker-compose.ghcr.yml --profile tools run --rm tools npm run ingest:redfin
 
 services:
   db:

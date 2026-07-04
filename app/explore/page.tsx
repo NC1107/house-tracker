@@ -34,7 +34,7 @@ export default async function ExplorePage({
     <div className="space-y-6">
       <PageHeader
         title="Region Explorer"
-        subtitle="Home values, rents, and how fast prices are moving — by state or metro area."
+        subtitle="Home values, rents, and how fast prices are moving, by state or metro area."
         action={<Freshness date={zhvi.at(-1)?.date} />}
       />
 
@@ -59,7 +59,7 @@ export default async function ExplorePage({
             <label className="block">
               <span className="label">Metro area</span>
               <select name="metro" defaultValue={metroId ? String(metroId) : ""} className="input min-w-[14rem]">
-                <option value="">— Whole state —</option>
+                <option value="">Whole state</option>
                 {metros.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
@@ -92,7 +92,7 @@ export default async function ExplorePage({
                 title={`${regionName}: year-over-year price change`}
                 source="derived from ZHVI"
                 direction="lower"
-                whatFor="How fast prices are rising or falling. Falling/low growth means a cooling market — better negotiating position."
+                whatFor="How fast prices are rising or falling. Falling/low growth means a cooling market and a better negotiating position."
               >
                 <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} />
               </ChartCard>
@@ -101,7 +101,7 @@ export default async function ExplorePage({
                   title={`${regionName}: typical rent`}
                   source="Zillow ZORI"
                   direction="lower"
-                  whatFor="Typical asking rent — useful for a rent-vs-buy comparison in this area."
+                  whatFor="Typical asking rent, useful for a rent-vs-buy comparison in this area."
                 >
                   <TimeSeriesChart data={zori} format="usd" color={CHART.series3} />
                 </ChartCard>

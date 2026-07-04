@@ -88,7 +88,7 @@ export default function AffordabilityCalculator({
       {/* Inputs */}
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">Your numbers</h2>
-        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values — edit to match your situation.</p>
+        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values. Edit to match your situation.</p>
 
         <Field label="Gross annual income">
           <NumberInput value={income} onChange={setIncome} prefix="$" step={5000} />
@@ -220,7 +220,7 @@ export default function AffordabilityCalculator({
         <div className="card">
           <h3 className="mb-3 font-semibold">Rate sensitivity</h3>
           <p className="mb-3 text-xs text-[var(--muted)]">
-            What a rate change does to your buying power — the buyer&apos;s edge when timing a purchase.
+            What a rate change does to your buying power, the buyer&apos;s edge when timing a purchase.
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

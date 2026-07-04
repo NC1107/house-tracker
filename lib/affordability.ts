@@ -69,7 +69,7 @@ export interface Guideline {
 export const GUIDELINES: Record<string, Guideline> = {
   conventional_classic: {
     key: "conventional_classic",
-    label: "Conventional — classic 28/36",
+    label: "Conventional (classic 28/36)",
     frontEndLimit: 0.28,
     backEndLimit: 0.36,
     minDownPct: 0.03,
@@ -78,7 +78,7 @@ export const GUIDELINES: Record<string, Guideline> = {
   },
   conventional_max: {
     key: "conventional_max",
-    label: "Conventional — max (AUS w/ compensating factors)",
+    label: "Conventional max (AUS w/ compensating factors)",
     frontEndLimit: null,
     backEndLimit: 0.5,
     minDownPct: 0.03,
@@ -95,11 +95,11 @@ export const GUIDELINES: Record<string, Guideline> = {
     // 43% back-end was the old General QM hard cap (12 CFR 1026.43); the 2021 QM rule
     // replaced it with a price-based (APR-vs-APOR) test. 43% now survives as a rule of thumb
     // for the maximum many lenders will stretch to — not a "comfortable" payment.
-    source: "43% back-end DTI — lender max rule of thumb (not the current CFPB QM test)",
+    source: "43% back-end DTI, lender max rule of thumb (not the current CFPB QM test)",
   },
   fha: {
     key: "fha",
-    label: "FHA — 31/43",
+    label: "FHA (31/43)",
     frontEndLimit: 0.31,
     backEndLimit: 0.43,
     minDownPct: 0.035,

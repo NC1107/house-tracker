@@ -69,7 +69,7 @@ export default function RentVsBuy({ defaultRate = 6.8, defaultRent = 2_200 }: { 
     <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">Assumptions</h2>
-        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values — edit to match your situation.</p>
+        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values. Edit to match your situation.</p>
         <Field label="Home price"><Num v={homePrice} set={setHomePrice} prefix="$" step={10000} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Down payment"><Num v={downPct} set={setDownPct} suffix="%" step={1} /></Field>

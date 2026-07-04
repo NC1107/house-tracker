@@ -44,7 +44,7 @@ export async function deleteAlert(formData: FormData) {
 
 export async function sendTest() {
   const r = await sendEmail(
-    "House Tracker — test alert",
+    "House Tracker test alert",
     "<p>This is a test alert from House Tracker. If you received this, email notifications are working.</p>",
   );
   redirect(`/alerts?test=${r.sent ? "sent" : "fail"}`);

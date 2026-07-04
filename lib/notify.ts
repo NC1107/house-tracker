@@ -13,7 +13,7 @@ export async function sendEmail(subject: string, html: string): Promise<SendResu
   const from = process.env.ALERT_FROM || "House Tracker <onboarding@resend.dev>";
 
   if (!key || !to) {
-    console.warn(`[notify] RESEND_API_KEY/ALERT_EMAIL not set — skipping email: ${subject}`);
+    console.warn(`[notify] RESEND_API_KEY/ALERT_EMAIL not set, skipping email: ${subject}`);
     return { sent: false, reason: "unconfigured" };
   }
 

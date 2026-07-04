@@ -59,10 +59,10 @@ export default async function WherePage() {
           </Card>
 
           <Card>
-            <SectionTitle hint="most → least affordable">Ranked</SectionTitle>
+            <SectionTitle hint="most to least affordable">Ranked</SectionTitle>
             <p className="mb-3 text-xs text-[var(--muted)]">
               Payments include each state&apos;s effective property-tax rate plus an insurance
-              estimate — so high-tax states (NJ, IL, TX) rank lower than home price alone implies.
+              estimate, so high-tax states (NJ, IL, TX) rank lower than home price alone implies.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

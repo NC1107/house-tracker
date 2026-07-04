@@ -58,7 +58,7 @@ export default async function MarketPage({
     <div className="space-y-6">
       <PageHeader
         title="Market Heat & Deal Signals"
-        subtitle="A 0–100 buyer-leverage score from inventory, days-on-market, price cuts, and sale-to-list. Higher means more negotiating power for you."
+        subtitle="A 0-100 buyer-leverage score from inventory, days-on-market, price cuts, and sale-to-list. Higher means more negotiating power for you."
         action={<Freshness date={through} />}
       />
 
@@ -68,7 +68,7 @@ export default async function MarketPage({
         <EmptyNote>
           <strong>Market data isn&apos;t loaded yet.</strong> This page needs Redfin metrics
           (inventory, days-on-market, price cuts, sale-to-list). Run{" "}
-          <code>npm run ingest:redfin</code> once — it covers every state in a single file, so all
+          <code>npm run ingest:redfin</code> once; it covers every state in a single file, so all
           states light up together. On the prebuilt Docker image, pull the latest image first, then
           run the ingest command shown in <code>DEPLOY.md</code>.
         </EmptyNote>
@@ -102,10 +102,10 @@ export default async function MarketPage({
                 <p className="mt-4 text-sm text-[var(--text-2)]">
                   <span className="font-medium text-[var(--text-1)]">What this means for you: </span>
                   {heat.score >= 58
-                    ? "You likely have room to negotiate — consider offering below ask and requesting concessions (closing help, repairs)."
+                    ? "You likely have room to negotiate. Consider offering below ask and requesting concessions (closing help, repairs)."
                     : heat.score > 42
-                      ? "A balanced market — reasonable offers near asking price should compete without a bidding war."
-                      : "A competitive seller's market — expect to move fast, offer at or above ask, and keep contingencies tight."}
+                      ? "A balanced market. Reasonable offers near asking price should compete without a bidding war."
+                      : "A competitive seller's market. Expect to move fast, offer at or above ask, and keep contingencies tight."}
                 </p>
               </Card>
 

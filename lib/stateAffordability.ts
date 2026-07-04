@@ -52,8 +52,8 @@ export function affordabilityColor(priceToIncome: number): string {
 
 export const AFFORDABILITY_LEGEND = [
   { label: "≤3× income", color: "#16a34a" },
-  { label: "3–4×", color: "#84cc16" },
-  { label: "4–5×", color: "#eab308" },
-  { label: "5–7×", color: "#f97316" },
+  { label: "3-4×", color: "#84cc16" },
+  { label: "4-5×", color: "#eab308" },
+  { label: "5-7×", color: "#f97316" },
   { label: ">7×", color: "#dc2626" },
 ];

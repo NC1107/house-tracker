@@ -9,6 +9,7 @@
 #   docker compose --profile tools run --rm tools npm run seed:geo
 #   docker compose --profile tools run --rm tools npm run ingest:fred
 #   docker compose --profile tools run --rm tools npm run ingest:zillow
+#   docker compose --profile tools run --rm tools npm run ingest:redfin
 
 services:
   db:

@@ -56,7 +56,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <footer className="mx-auto w-full max-w-6xl px-4 py-8 text-xs text-[var(--muted)]">
             Data: Zillow Research, Redfin, Realtor.com, FRED, US Census, HUD. National
-            reference figures are approximate and dated. Estimates are for planning only —
+            reference figures are approximate and dated. Estimates are for planning only,
             not a lending decision.
           </footer>
         </div>

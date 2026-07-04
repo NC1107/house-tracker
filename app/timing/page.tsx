@@ -14,7 +14,7 @@ export default async function TimingPage() {
         subtitle="Thinking of holding off? See what a delay does to your monthly payment, the cash you need, and lifetime interest if prices and rates move."
       />
       <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-[var(--text-2)]">
-        Waiting isn&apos;t automatically worse — this only compares buying now vs. later. If you&apos;d
+        Waiting isn&apos;t automatically worse; this only compares buying now vs. later. If you&apos;d
         rent and invest in the meantime, see{" "}
         <a href="/rent-vs-buy" className="font-medium text-[var(--brand)] underline">Rent vs. Buy</a>{" "}
         for the full picture.

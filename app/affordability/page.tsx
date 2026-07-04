@@ -11,7 +11,7 @@ export default async function AffordabilityPage() {
     <div className="space-y-6">
       <PageHeader
         title="Affordability"
-        subtitle={`Full PITI, PMI/MIP, and real front/back-end DTI ratios — the same checks a lender runs. ${
+        subtitle={`Full PITI, PMI/MIP, and real front/back-end DTI ratios, the same checks a lender runs. ${
           rate ? `Rate prefilled from FRED (${rate.rate.toFixed(2)}%).` : "Rate defaults to 6.8% until data is ingested."
         }`}
       />

@@ -94,21 +94,23 @@ export default function ProfileControls({
             type="button"
             onClick={useAverages}
             aria-pressed={!isCustom}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            aria-label="Use US average numbers"
+            className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
               !isCustom ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
             }`}
           >
-            US average
+            US avg
           </button>
           <button
             type="button"
             onClick={useMine}
             aria-pressed={isCustom}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            aria-label="Use my numbers"
+            className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
               isCustom ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
             }`}
           >
-            My numbers
+            Me
           </button>
         </div>
         <span className="text-[var(--text-2)]">

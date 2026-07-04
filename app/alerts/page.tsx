@@ -26,7 +26,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
     <div className="space-y-6">
       <PageHeader
         title="Alerts"
-        subtitle="Get an email when the market moves your way — a rate drop, a state turning into a buyer's market, or prices falling. Evaluated daily."
+        subtitle="Get an email when the market moves your way: a rate drop, a state turning into a buyer's market, or prices falling. Evaluated daily."
       />
 
       {test === "sent" && (
@@ -36,15 +36,15 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
       )}
       {test === "fail" && (
         <div className="rounded-lg border border-[var(--border)] p-3 text-sm" style={{ color: "var(--critical)" }}>
-          Test email failed — check RESEND_API_KEY / ALERT_EMAIL and the server logs.
+          Test email failed. Check RESEND_API_KEY / ALERT_EMAIL and the server logs.
         </div>
       )}
 
       {!configured && (
         <EmptyNote>
           Email delivery isn&apos;t configured yet. Set <code>RESEND_API_KEY</code> and{" "}
-          <code>ALERT_EMAIL</code> (your address) in the environment. You can still add rules now
-          — the daily job will email once those are set.
+          <code>ALERT_EMAIL</code> (your address) in the environment. You can still add rules now;
+          the daily job will email once those are set.
         </EmptyNote>
       )}
 
@@ -62,7 +62,7 @@ export default async function AlertsPage({ searchParams }: { searchParams: Promi
               </form>
             </div>
             {rules.length === 0 ? (
-              <p className="text-sm text-[var(--text-2)]">No alerts yet — add one below.</p>
+              <p className="text-sm text-[var(--text-2)]">No alerts yet. Add one below.</p>
             ) : (
               <ul className="divide-y divide-[var(--border)]">
                 {rules.map((r) => (

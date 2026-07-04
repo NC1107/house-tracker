@@ -4,8 +4,8 @@ import { Card } from "@/components/ui";
 export type BuyerDirection = "lower" | "higher" | "context";
 
 /**
- * A chart wrapped with a title, source, a one-line "what it's for" explanation, and — the
- * important part for buyers — a badge stating which direction is good for them.
+ * A chart wrapped with a title, source, a one-line "what it's for" explanation, and (the
+ * important part for buyers) a badge stating which direction is good for them.
  */
 export function ChartCard({
   title,
@@ -30,7 +30,7 @@ export function ChartCard({
         <h2 className="font-semibold">{title}</h2>
         {source && <span className="shrink-0 text-xs text-[var(--muted)]">{source}</span>}
       </div>
-      <div className="mb-3">{badge}</div>
+      {badge && <div className="mb-3">{badge}</div>}
       {children}
       <p className="mt-2 text-xs text-[var(--muted)]">{whatFor}</p>
     </Card>
@@ -38,15 +38,8 @@ export function ChartCard({
 }
 
 function directionBadge(direction: BuyerDirection, note?: string) {
-  if (direction === "context") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-0.5 text-xs text-[var(--text-2)]">
-        <span aria-hidden>ℹ</span>
-        {note ?? "Depends"}
-      </span>
-    );
-  }
-  const arrow = direction === "lower" ? "↓" : "↑";
+  // "context" charts carry their nuance in the whatFor description instead of a badge.
+  if (direction === "context") return null;
   const text = note ?? (direction === "lower" ? "Lower is better" : "Higher is better");
   return (
     <span
@@ -54,7 +47,6 @@ function directionBadge(direction: BuyerDirection, note?: string) {
       style={{ backgroundColor: "color-mix(in srgb, var(--good) 14%, transparent)", color: "var(--good-ink)" }}
       title="For buyers"
     >
-      <span aria-hidden className="text-sm leading-none">{arrow}</span>
       {text}
     </span>
   );

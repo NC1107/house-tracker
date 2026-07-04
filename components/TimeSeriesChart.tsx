@@ -17,7 +17,7 @@ import { CHART } from "@/lib/chartTheme";
  * Value format for the Y axis / tooltip. Passed as a plain string (not a function) so this
  * client component can be rendered from a Server Component.
  */
-export type ValueFormat = "usd" | "percent" | "percent2" | "index" | "number";
+export type ValueFormat = "usd" | "percent" | "percent2" | "index" | "number" | "months" | "ratio";
 
 const RANGES: { key: string; days: number }[] = [
   { key: "1W", days: 7 },
@@ -41,6 +41,10 @@ function axisFormatter(format: ValueFormat): (v: number) => string {
       return (v) => `${v.toFixed(2)}%`;
     case "index":
       return (v) => v.toFixed(0);
+    case "months":
+      return (v) => `${v.toFixed(1)} mo`;
+    case "ratio":
+      return (v) => `${v.toFixed(1)}x`;
     default:
       return (v) => v.toLocaleString("en-US");
   }
@@ -55,6 +59,10 @@ function tooltipFormatter(format: ValueFormat): (v: number) => string {
       return (v) => `${v.toFixed(2)}%`;
     case "index":
       return (v) => v.toFixed(1);
+    case "months":
+      return (v) => `${v.toFixed(1)} months`;
+    case "ratio":
+      return (v) => `${v.toFixed(2)}x price-to-income`;
     default:
       return (v) => v.toLocaleString("en-US");
   }
@@ -103,7 +111,7 @@ export default function TimeSeriesChart({
   if (!data.length) {
     return (
       <div className="flex items-center justify-center rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--muted)]" style={{ height }}>
-        No data yet — run ingestion to populate this chart.
+        No data yet. Run ingestion to populate this chart.
       </div>
     );
   }

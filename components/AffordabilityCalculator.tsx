@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   maxAffordablePrice,
-  computePiti,
-  computeDti,
+  cashToClose,
   GUIDELINES,
   type DownPaymentMode,
 } from "@/lib/affordability";
@@ -76,6 +75,7 @@ export default function AffordabilityCalculator({
   );
 
   const p = result.piti;
+  const cash = cashToClose({ homePrice: result.maxHomePrice, downPayment: result.downPayment, monthlyPiti: p.total });
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
@@ -165,6 +165,17 @@ export default function AffordabilityCalculator({
             {result.isJumbo && (
               <span className="font-medium text-amber-600">Jumbo loan (above conforming limit)</span>
             )}
+          </div>
+          <div className="mt-3 rounded-lg bg-[var(--surface-2)] p-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Cash to buy</span>
+              <span className="font-semibold tabular-nums">{usd(cash.total)}</span>
+            </div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-[var(--muted)]">
+              <span>Down {usd(cash.downPayment)}</span>
+              <span>+ closing ~{usd(cash.closingCosts)} (3%)</span>
+              <span>+ reserves ~{usd(cash.reserves)} (2mo)</span>
+            </div>
           </div>
         </div>
 

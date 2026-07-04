@@ -47,20 +47,24 @@ export default async function OverviewPage() {
             <span className="badge">Median US household</span>
             <p className="mt-3 text-sm text-[var(--text-2)]">
               Earning <strong className="text-[var(--text-1)]">{usd(snap.medianIncome)}</strong>/yr, at today&apos;s{" "}
-              <strong className="text-[var(--text-1)]">{currentRate.toFixed(2)}%</strong> rate, can afford about
+              <strong className="text-[var(--text-1)]">{currentRate.toFixed(2)}%</strong> rate, can comfortably afford
             </p>
             <p className="mt-1 text-4xl font-bold tabular-nums text-[var(--brand)] sm:text-5xl">
-              {usd(snap.medianMaxPrice)}
+              {usd(snap.comfortableMaxPrice)}
             </p>
             <p className="mt-2 text-sm text-[var(--text-2)]">
               The typical US home costs <strong className="text-[var(--text-1)]">{usd(snap.medianHomePrice)}</strong> —{" "}
               {snap.medianCanAfford ? (
-                <span className="font-medium text-[var(--good)]">within reach.</span>
+                <span className="font-medium text-[var(--good)]">within a comfortable budget.</span>
               ) : (
                 <span className="font-medium text-[var(--critical)]">
-                  a {usd(snap.medianHomePrice - snap.medianMaxPrice)} gap.
+                  a {usd(snap.medianHomePrice - snap.comfortableMaxPrice)} stretch beyond comfortable.
                 </span>
               )}
+            </p>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              &ldquo;Comfortable&rdquo; = ≤28% of income on housing. A lender may approve up to{" "}
+              <strong className="text-[var(--text-2)]">{usd(snap.lenderMaxPrice)}</strong> (43% of income) — the max, not the comfortable choice.
             </p>
           </div>
           <div className="w-full max-w-xs">
@@ -88,10 +92,10 @@ export default async function OverviewPage() {
           <Stat label="Monthly payment (PITI)" value={usd(snap.medianHomePayment)} sub={`on a ${usd(snap.medianHomePrice)} home`} />
           <Stat label="Housing cost burden" value={pct(snap.housingBurden, 0)} sub="of gross income · <30% is comfortable" tone={burdenTone} />
           <Stat label="Price-to-income" value={`${snap.priceToIncome.toFixed(1)}×`} sub="home price ÷ median income" tone={p2iTone} />
-          <Stat label="Income to buy it" value={usd(snap.incomeForMedianHome)} sub="to qualify comfortably" />
-          <Stat label="20% down payment" value={usd(snap.downPayment20)} sub={`~${snap.yearsToSaveDownPayment.toFixed(0)} yrs saving 10%/yr`} />
-          <Stat label="Median rent" value={`${usd(NATIONAL.medianAskingRent)}/mo`} sub="US asking rent (approx)" />
-          <Stat label="Buying signal" value={rate ? (rate.rate < 6 ? "Favorable" : "Watch") : "Watch"} sub="rate-based, illustrative" tone={rate && rate.rate < 6 ? "good" : "neutral"} />
+          <Stat label="Income to comfortably buy" value={usd(snap.incomeForMedianHome)} sub="at ≤28% housing (28/36 rule)" />
+          <Stat label="Cash to buy" value={usd(snap.cashToClose.total)} sub="down + closing + ~2mo reserves" hint="upfront" />
+          <Stat label="20% down" value={usd(snap.downPayment20)} sub={`~${snap.yearsToSaveDownPayment.toFixed(0)} yrs at 10% savings`} />
+          <Stat label="FHA 3.5% down" value={usd(snap.fhaDownPayment)} sub={`~${snap.fhaYearsToSave.toFixed(0)} yrs — the low-down path`} tone="good" />
         </div>
       </div>
 

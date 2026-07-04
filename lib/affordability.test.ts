@@ -7,9 +7,25 @@ import {
   computeDti,
   maxAffordablePrice,
   requiredIncomeForPrice,
+  cashToClose,
   GUIDELINES,
   CONFORMING_LOAN_LIMIT_1UNIT_2025,
 } from "./affordability";
+
+describe("cashToClose", () => {
+  it("sums down payment, closing costs, and reserves", () => {
+    const c = cashToClose({ homePrice: 400_000, downPayment: 80_000, monthlyPiti: 2_500 });
+    expect(c.closingCosts).toBeCloseTo(12_000, 0); // 3% of 400k
+    expect(c.reserves).toBeCloseTo(5_000, 0); // 2 * 2500
+    expect(c.total).toBeCloseTo(97_000, 0);
+  });
+  it("respects custom closing and reserve settings", () => {
+    const c = cashToClose({ homePrice: 300_000, downPayment: 60_000, monthlyPiti: 2_000, closingCostPct: 0.05, reserveMonths: 3 });
+    expect(c.closingCosts).toBeCloseTo(15_000, 0);
+    expect(c.reserves).toBeCloseTo(6_000, 0);
+    expect(c.total).toBeCloseTo(81_000, 0);
+  });
+});
 
 /**
  * The amortization vectors below are exact and match every authoritative mortgage

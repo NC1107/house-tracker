@@ -3,6 +3,7 @@ import ChoroplethMap, { type StateDatum } from "@/components/ChoroplethMap";
 import { statePaths } from "@/lib/geo/usStates";
 import { latestMetricByState, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { computeStateAffordability, affordabilityColor } from "@/lib/stateAffordability";
+import { statePropertyTaxRate, stateInsuranceRate } from "@/lib/geo/stateCosts";
 import { NATIONAL } from "@/lib/reference";
 import { usd } from "@/lib/format";
 
@@ -19,10 +20,13 @@ export default async function WherePage() {
 
   const data: StateDatum[] = states
     .map((s) => {
-      const a = computeStateAffordability(s.value, income, rate);
+      const a = computeStateAffordability(s.value, income, rate, {
+        propertyTaxRate: statePropertyTaxRate(s.stateCode),
+        insuranceRate: stateInsuranceRate(s.stateCode),
+      });
       return { stateCode: s.stateCode, name: s.name, ...a };
     })
-    .sort((a, b) => a.priceToIncome - b.priceToIncome);
+    .sort((a, b) => a.requiredIncome - b.requiredIncome);
 
   const affordableCount = data.filter((d) => d.affordable).length;
 
@@ -53,6 +57,10 @@ export default async function WherePage() {
 
           <Card>
             <SectionTitle hint="most → least affordable">Ranked</SectionTitle>
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              Payments include each state&apos;s effective property-tax rate plus an insurance
+              estimate — so high-tax states (NJ, IL, TX) rank lower than home price alone implies.
+            </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

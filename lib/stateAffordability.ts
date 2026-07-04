@@ -21,12 +21,15 @@ export function computeStateAffordability(
   homeValue: number,
   nationalIncome: number,
   rate: number,
+  opts: { propertyTaxRate?: number; insuranceRate?: number } = {},
 ): StateAffordability {
   const req = requiredIncomeForPrice({
     homePrice: homeValue,
     downPayment: { kind: "percent", percent: 0.15 },
     monthlyDebts: 0,
     annualRatePct: rate,
+    propertyTaxRate: opts.propertyTaxRate,
+    insuranceRate: opts.insuranceRate,
     guideline: GUIDELINES.qm,
   });
   return {

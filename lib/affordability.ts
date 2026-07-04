@@ -25,6 +25,12 @@
 /** 2025 FHFA baseline conforming loan limit for a 1-unit property (continental US). */
 export const CONFORMING_LOAN_LIMIT_1UNIT_2025 = 806_500;
 
+/**
+ * Current baseline conforming loan limit (1-unit, continental US). FHFA updates this every
+ * November; 2026 baseline ≈ $832,750. Wire to a live FHFA source when available.
+ */
+export const CONFORMING_LOAN_LIMIT_1UNIT = 832_750;
+
 /** Reasonable planning defaults (all user-overridable). */
 export const DEFAULTS = {
   termMonths: 360,
@@ -81,12 +87,15 @@ export const GUIDELINES: Record<string, Guideline> = {
   },
   qm: {
     key: "qm",
-    label: "Qualified Mortgage (CFPB ATR)",
+    label: "43% DTI (max-qualifying rule of thumb)",
     frontEndLimit: null,
     backEndLimit: 0.43,
     minDownPct: 0.03,
     mortgageInsurance: "pmi",
-    source: "CFPB ATR/QM rule, 12 CFR 1026.43",
+    // 43% back-end was the old General QM hard cap (12 CFR 1026.43); the 2021 QM rule
+    // replaced it with a price-based (APR-vs-APOR) test. 43% now survives as a rule of thumb
+    // for the maximum many lenders will stretch to — not a "comfortable" payment.
+    source: "43% back-end DTI — lender max rule of thumb (not the current CFPB QM test)",
   },
   fha: {
     key: "fha",
@@ -357,7 +366,7 @@ export function maxAffordablePrice(inputs: AffordabilityInputs): AffordabilityRe
     monthlyHoa = 0,
     guideline = GUIDELINES.conventional_classic,
     pmiRate = DEFAULTS.pmiRate,
-    conformingLimit = CONFORMING_LOAN_LIMIT_1UNIT_2025,
+    conformingLimit = CONFORMING_LOAN_LIMIT_1UNIT,
   } = inputs;
 
   const grossMonthlyIncome = grossAnnualIncome / 12;
@@ -431,6 +440,41 @@ function buildResult(
     dti,
     isJumbo: piti.loanAmount > conformingLimit,
     guideline,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Cash needed to close (the "how much do I actually need saved?" answer)
+// ---------------------------------------------------------------------------
+
+export interface CashToClose {
+  downPayment: number;
+  closingCosts: number;
+  reserves: number;
+  total: number;
+}
+
+/**
+ * Total upfront cash a buyer needs: down payment + closing costs (typically 2–5% of price;
+ * default 3%) + lender reserves (a couple months of the full payment). DTI qualification
+ * alone ignores this, which is the most common way buyers overstate what they can actually
+ * fund — so it's surfaced explicitly.
+ */
+export function cashToClose(inputs: {
+  homePrice: number;
+  downPayment: number;
+  monthlyPiti: number;
+  closingCostPct?: number;
+  reserveMonths?: number;
+}): CashToClose {
+  const { homePrice, downPayment, monthlyPiti, closingCostPct = 0.03, reserveMonths = 2 } = inputs;
+  const closingCosts = homePrice * closingCostPct;
+  const reserves = monthlyPiti * reserveMonths;
+  return {
+    downPayment,
+    closingCosts,
+    reserves,
+    total: downPayment + closingCosts + reserves,
   };
 }
 

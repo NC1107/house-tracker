@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { PageHeader, EmptyNote } from "@/components/ui";
 import { statesList, latestMortgageRate, dbConfigured } from "@/lib/queries";
-import { fetchLiveListings, REDFIN_STATE_REGION_IDS } from "@/lib/sources/redfin-live";
+import { fetchLiveListings, fetchStateCities, REDFIN_STATE_REGION_IDS } from "@/lib/sources/redfin-live";
 import { maxAffordablePrice, GUIDELINES } from "@/lib/affordability";
 import { getProfile } from "@/lib/profile";
 import { usd } from "@/lib/format";
@@ -24,6 +24,7 @@ export default async function DealsPage({
     yearmax?: string;
     lot?: string;
     type?: string;
+    city?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -47,6 +48,14 @@ export default async function DealsPage({
 
   const usable = states.filter((s) => REDFIN_STATE_REGION_IDS[s.name]);
   const selectedName = usable.some((s) => s.name === stateParam) ? stateParam! : usable[0]?.name;
+
+  // City scoping: known big cities search Redfin's city region directly; anything else
+  // typed falls back to filtering the state results by city name.
+  const cities = selectedName ? await fetchStateCities(selectedName) : [];
+  const cityQuery = (sp.city ?? "").trim();
+  const cityMatch = cityQuery
+    ? cities.find((c) => c.name.toLowerCase() === cityQuery.toLowerCase())
+    : undefined;
 
   const minBeds = Math.max(0, Number(beds) || 0);
   const minBaths = Math.max(0, Number(baths) || 0);
@@ -77,6 +86,8 @@ export default async function DealsPage({
         minLotSqft: lotAcres ? Math.round(lotAcres * 43_560) : undefined,
         basement: wantBasement,
         types: houseType ? [houseType] : undefined,
+        cityRegionId: cityMatch?.id,
+        cityName: cityMatch ? undefined : cityQuery || undefined,
       })
     : [];
   const filterSummary = [
@@ -88,6 +99,7 @@ export default async function DealsPage({
     lotAcres ? `${lotAcres}+ acres` : null,
     wantBasement ? "basement" : null,
     houseType ?? null,
+    cityQuery ? `in ${cityMatch?.name ?? cityQuery}` : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -114,6 +126,22 @@ export default async function DealsPage({
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="block">
+                <span className="label">City (optional)</span>
+                <input
+                  type="text"
+                  name="city"
+                  defaultValue={cityQuery}
+                  placeholder="anywhere"
+                  list="city-options"
+                  className="input w-40"
+                />
+                <datalist id="city-options">
+                  {cities.map((c) => (
+                    <option key={c.id} value={c.name} />
+                  ))}
+                </datalist>
               </label>
               <label className="block">
                 <span className="label">Min price</span>
@@ -184,9 +212,12 @@ export default async function DealsPage({
 
           {listings.length === 0 ? (
             <EmptyNote>
-              No live listings came back for {selectedName} under {usd(budget)}. Either nothing
-              matches, or the unofficial listing feed is unavailable right now; try again in a
-              few minutes.
+              No live listings came back for {cityQuery ? `${cityQuery}, ` : ""}
+              {selectedName} under {usd(budget)}. Either nothing matches, or the unofficial
+              listing feed is unavailable right now; try again in a few minutes.
+              {cityQuery && !cityMatch
+                ? " Small towns are matched by name against a statewide sample, so a big-city name from the suggestions works better."
+                : ""}
             </EmptyNote>
           ) : (
             <>

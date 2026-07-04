@@ -23,3 +23,23 @@ describe("REALTOR_METRIC_MAP", () => {
     );
   });
 });
+
+// City-link parsing for the live-listings city search lives in redfin-live.
+import { parseCityLinks } from "@/lib/sources/redfin-live";
+
+describe("parseCityLinks", () => {
+  it("extracts unique cities with region ids from state-page HTML", () => {
+    const html = `
+      <a href="/city/4664/OH/Columbus">Columbus</a>
+      <a href="/city/4145/OH/Cleveland">Cleveland</a>
+      <a href="/city/4153/OH/Cleveland">Cleveland (alt)</a>
+      <a href="/city/18309/OH/Shaker-Heights">Shaker Heights</a>
+      <a href="/county/2168/OH/Butler-County">not a city</a>`;
+    const cities = parseCityLinks(html);
+    expect(cities).toEqual([
+      { id: 4145, name: "Cleveland" },
+      { id: 4664, name: "Columbus" },
+      { id: 18309, name: "Shaker Heights" },
+    ]);
+  });
+});

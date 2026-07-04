@@ -83,6 +83,10 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
               </select>
             </label>
             <label className="block">
+              <span className="label">City (optional)</span>
+              <input type="text" name="cityName" placeholder="anywhere in state" className="input" />
+            </label>
+            <label className="block">
               <span className="label">Max price ($)</span>
               <input type="number" name="maxPrice" min={0} step={10000} defaultValue={400000} className="input" />
             </label>

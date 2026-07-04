@@ -137,7 +137,8 @@ export function evalListingMatch(
   ctx: { newListings: MatchedListing[]; date: string | null },
 ): AlertEvaluation {
   if (!ctx.newListings.length) return noFire;
-  const where = (rule.params.stateName as string) ?? rule.regionName ?? "your search area";
+  const state = (rule.params.stateName as string) ?? rule.regionName ?? "your search area";
+  const where = rule.params.cityName ? `${rule.params.cityName}, ${state}` : state;
   const shown = ctx.newListings.slice(0, 5);
   const items = shown
     .map((l) => {

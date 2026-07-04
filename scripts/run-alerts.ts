@@ -73,6 +73,8 @@ async function main() {
         minSqft: Number(filters.minSqft) || undefined,
         minYearBuilt: Number(filters.minYearBuilt) || undefined,
         basement: Boolean(filters.basement),
+        cityRegionId: Number(filters.cityRegionId) || undefined,
+        cityName: filters.cityRegionId ? undefined : (filters.cityName as string | undefined) || undefined,
       });
       const keyOf = (l: { mls: string; url: string }) => `mls:${l.mls || l.url}`.slice(0, 128);
       const keys = listings.map(keyOf);

@@ -16,12 +16,57 @@ export interface SeriesRow {
 }
 
 /**
+ * Deduplicate rows by conflict key (geography_id, metric_key, period_date), keeping the
+ * last occurrence. Postgres' ON CONFLICT DO UPDATE errors ("cannot affect row a second
+ * time") if a single batch contains two rows with the same key — which an upstream schema
+ * hiccup (a repeated region/date) can produce — so we collapse them before insert.
+ */
+export function dedupeByKey(rows: SeriesRow[]): SeriesRow[] {
+  const map = new Map<string, SeriesRow>();
+  for (const r of rows) map.set(`${r.geographyId}|${r.metricKey}|${r.periodDate}`, r);
+  return [...map.values()];
+}
+
+/** Plausible value ranges per metric; a median outside these logs a warning (unit drift). */
+const METRIC_SANITY: Record<string, [number, number]> = {
+  price_drops_share: [0, 1],
+  sale_to_list: [0.7, 1.3],
+  months_of_supply: [0, 60],
+  mortgage_30yr: [0, 25],
+  mortgage_30yr_daily: [0, 25],
+};
+
+function median(nums: number[]): number {
+  if (!nums.length) return NaN;
+  const s = [...nums].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+
+/** Warn (don't throw) if a metric's values look out of range — catches unit changes early. */
+export function sanityCheck(rows: SeriesRow[]): void {
+  const byKey = new Map<string, number[]>();
+  for (const r of rows) {
+    const range = METRIC_SANITY[r.metricKey];
+    if (!range) continue;
+    (byKey.get(r.metricKey) ?? byKey.set(r.metricKey, []).get(r.metricKey)!).push(r.value);
+  }
+  for (const [key, vals] of byKey) {
+    const m = median(vals);
+    const [lo, hi] = METRIC_SANITY[key];
+    if (Number.isFinite(m) && (m < lo || m > hi)) {
+      console.warn(`[ingest] SANITY: ${key} median ${m} outside expected [${lo}, ${hi}] — unit drift?`);
+    }
+  }
+}
+
+/**
  * Upsert observations in batches, updating value on conflict of
- * (geography_id, metric_key, period_date). Skips NaN/nullish values.
+ * (geography_id, metric_key, period_date). Skips NaN/nullish values and de-dupes the batch.
  */
 export async function upsertSeries(rows: SeriesRow[], batchSize = 1000): Promise<number> {
   const db = getDb();
-  const clean = rows.filter((r) => Number.isFinite(r.value));
+  const clean = dedupeByKey(rows.filter((r) => Number.isFinite(r.value)));
+  sanityCheck(clean);
   let written = 0;
   for (let i = 0; i < clean.length; i += batchSize) {
     const batch = clean.slice(i, i + batchSize);

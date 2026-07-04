@@ -18,7 +18,7 @@ tabs), deploy on the server:
 ```bash
 git clone https://github.com/NC1107/house-tracker.git
 cd house-tracker
-git checkout claude/housing-price-tracker-ul45rp
+git checkout main
 cp .env.example .env                       # defaults work out of the box
 
 # If the GHCR packages are private, authenticate once (or make them public in Packages settings):
@@ -65,7 +65,7 @@ Prereqs: Docker Engine + the Compose plugin.
 ```bash
 git clone https://github.com/NC1107/house-tracker.git
 cd house-tracker
-git checkout claude/housing-price-tracker-ul45rp
+git checkout main
 cp .env.example .env            # optional edits; defaults work out of the box
 
 # 1) Bring up just the site (calculator works immediately; charts empty until data loads)

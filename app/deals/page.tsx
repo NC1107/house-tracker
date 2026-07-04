@@ -123,57 +123,72 @@ export default async function DealsPage({
               few minutes.
             </EmptyNote>
           ) : (
-            <Card>
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="font-semibold">
                   {listings.length}
                   {listings.length >= 350 ? "+" : ""} homes under {usd(budget)}
                   {filterSummary ? ` (${filterSummary})` : ""} in {selectedName}
                 </h2>
-                <span className="text-xs text-[var(--muted)]">cheapest first; sample of up to 350</span>
+                <span className="text-xs text-[var(--muted)]">cheapest first; showing {Math.min(listings.length, 30)} of a sample of up to 350</span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-[var(--muted)]">
-                      <th className="py-1 pr-4 font-medium">Price</th>
-                      <th className="py-1 pr-4 font-medium">Address</th>
-                      <th className="py-1 pr-4 font-medium">City</th>
-                      <th className="py-1 pr-4 font-medium">Beds</th>
-                      <th className="py-1 pr-4 font-medium">Baths</th>
-                      <th className="py-1 pr-4 font-medium">Sq ft</th>
-                      <th className="py-1 pr-4 font-medium">Days listed</th>
-                      <th className="py-1 font-medium">Listing</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {listings.slice(0, 100).map((l, i) => (
-                      <tr key={`${l.url}-${i}`} className="border-t border-[var(--border)]">
-                        <td className="py-1.5 pr-4 font-medium tabular-nums">{usd(l.price)}</td>
-                        <td className="py-1.5 pr-4">{l.address || "(address withheld)"}</td>
-                        <td className="py-1.5 pr-4">{l.city}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{l.beds ?? ""}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{l.baths ?? ""}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{l.sqft ? l.sqft.toLocaleString() : ""}</td>
-                        <td className="py-1.5 pr-4 tabular-nums">{l.daysOnMarket ?? ""}</td>
-                        <td className="py-1.5">
-                          {l.url && (
-                            <a
-                              href={l.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-medium text-[var(--brand)] underline"
-                            >
-                              View
-                            </a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {listings.slice(0, 30).map((l, i) => (
+                  <a
+                    key={`${l.url}-${i}`}
+                    href={l.url || undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="card group overflow-hidden !p-0 transition-shadow hover:shadow-lg"
+                  >
+                    <div className="relative aspect-[3/2] w-full overflow-hidden bg-[var(--surface-2)]">
+                      {l.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={l.photoUrl}
+                          alt={l.address ? `Photo of ${l.address}` : "Listing photo"}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center text-sm text-[var(--muted)]">
+                          No photo
+                        </div>
+                      )}
+                      {l.daysOnMarket !== null && l.daysOnMarket <= 3 && (
+                        <span className="absolute left-2 top-2 rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-medium text-white">
+                          New
+                        </span>
+                      )}
+                      <span className="absolute bottom-2 left-2 rounded-lg bg-black/65 px-2 py-1 text-base font-bold tabular-nums text-white">
+                        {usd(l.price)}
+                      </span>
+                    </div>
+                    <div className="space-y-1 p-3">
+                      <p className="text-sm text-[var(--text-2)]">
+                        <span className="font-medium text-[var(--text-1)]">{l.beds ?? "?"} bd</span>
+                        {" · "}
+                        <span className="font-medium text-[var(--text-1)]">{l.baths ?? "?"} ba</span>
+                        {l.sqft ? (
+                          <>
+                            {" · "}
+                            <span className="font-medium text-[var(--text-1)]">{l.sqft.toLocaleString()}</span> sqft
+                          </>
+                        ) : null}
+                        {l.pricePerSqft ? ` · $${Math.round(l.pricePerSqft)}/sqft` : ""}
+                      </p>
+                      <p className="truncate text-sm font-medium">{l.address || "Address withheld"}</p>
+                      <p className="truncate text-xs text-[var(--muted)]">
+                        {l.city}, {l.state} {l.zip}
+                        {l.yearBuilt ? ` · built ${l.yearBuilt}` : ""}
+                        {l.daysOnMarket ? ` · ${l.daysOnMarket} day${l.daysOnMarket === 1 ? "" : "s"} listed` : ""}
+                      </p>
+                    </div>
+                  </a>
+                ))}
               </div>
-            </Card>
+            </>
           )}
 
           <p className="text-xs text-[var(--muted)]">

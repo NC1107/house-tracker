@@ -39,6 +39,9 @@ export interface LiveListing {
   url: string;
   /** MLS number when present; used to recognize a listing across runs. */
   mls: string;
+  /** Primary listing photo (Redfin CDN) when derivable; null otherwise. */
+  photoUrl: string | null;
+  yearBuilt: number | null;
 }
 
 /**
@@ -61,16 +64,9 @@ export interface ListingFilters {
 
 const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4" };
 
-/**
- * Fetch a sample of active listings for a state, optionally capped at a max price.
- * Returns [] on any failure (blocked, schema change, timeout) — callers show a notice.
- */
-export async function fetchLiveListings(opts: {
-  stateName: string;
-  limit?: number;
-} & ListingFilters): Promise<LiveListing[]> {
+function searchParams(opts: { stateName: string; limit?: number } & ListingFilters): URLSearchParams | null {
   const regionId = REDFIN_STATE_REGION_IDS[opts.stateName];
-  if (!regionId) return [];
+  if (!regionId) return null;
   const types = (opts.types?.length ? opts.types : ["house", "condo", "townhouse", "multifamily"])
     .map((t) => TYPE_CODES[t])
     .filter(Boolean);
@@ -83,6 +79,10 @@ export async function fetchLiveListings(opts: {
     uipt: types.join(","),
     sf: "1,2,3,5,6,7",
     v: "8",
+    // The filter params below are IGNORED unless these site-companion params ride along.
+    ord: "price-asc",
+    mpt: "99",
+    sp: "true",
   });
   if (opts.maxPrice && Number.isFinite(opts.maxPrice)) {
     params.set("max_price", String(Math.round(opts.maxPrice)));
@@ -91,13 +91,122 @@ export async function fetchLiveListings(opts: {
   if (opts.minBaths && opts.minBaths > 0) params.set("num_baths", String(opts.minBaths));
   if (opts.minStories && opts.minStories > 1) params.set("min_stories", String(opts.minStories));
   if (opts.basement) params.set("basement_types", "1,2,3"); // finished, unfinished, partial
-  const url = `https://www.redfin.com/stingray/api/gis-csv?${params}`;
+  return params;
+}
 
+/** Primary photo on Redfin's CDN, derived from the listing's data source + MLS number. */
+function photoUrlFor(dataSourceId: unknown, mls: string, numPictures: unknown): string | null {
+  const ds = Number(dataSourceId);
+  if (!Number.isFinite(ds) || !mls || !Number(numPictures)) return null;
+  const clean = mls.trim();
+  if (!/^[A-Za-z0-9._-]+$/.test(clean)) return null;
+  return `https://ssl.cdn-redfin.com/photo/${ds}/bigphoto/${clean.slice(-3)}/${clean}_0.jpg`;
+}
+
+/**
+ * Fetch a sample of active listings for a state matching the filters.
+ * Primary path is the JSON search endpoint (has photo metadata); the CSV export is the
+ * fallback (no photos). Returns [] on total failure — callers show a notice.
+ */
+export async function fetchLiveListings(opts: {
+  stateName: string;
+  limit?: number;
+} & ListingFilters): Promise<LiveListing[]> {
+  const params = searchParams(opts);
+  if (!params) return [];
+  const fromJson = await fetchViaJson(params, opts);
+  if (fromJson.length > 0) return fromJson;
+  return fetchViaCsv(params, opts);
+}
+
+interface GisHome {
+  streetLine?: { value?: string };
+  city?: string;
+  state?: string;
+  postalCode?: { value?: string };
+  price?: { value?: number };
+  beds?: number;
+  baths?: number;
+  sqFt?: { value?: number };
+  pricePerSqFt?: { value?: number };
+  dom?: { value?: number };
+  propertyType?: number;
+  uiPropertyType?: number;
+  url?: string;
+  mlsId?: { value?: string };
+  dataSourceId?: number;
+  numPictures?: number;
+  yearBuilt?: { value?: number } | number;
+}
+
+const UI_PROPERTY_TYPES: Record<number, string> = {
+  1: "House",
+  2: "Condo",
+  3: "Townhouse",
+  4: "Multi-family",
+  5: "Land",
+  6: "Other",
+};
+
+async function fetchViaJson(
+  params: URLSearchParams,
+  opts: ListingFilters,
+): Promise<LiveListing[]> {
+  let homes: GisHome[];
+  try {
+    const res = await fetch(`https://www.redfin.com/stingray/api/gis?${params}`, {
+      headers: { "User-Agent": UA, Accept: "application/json,*/*" },
+      // Be polite to an unofficial endpoint: cache each query for 15 minutes.
+      next: { revalidate: 900 },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return [];
+    const text = await res.text();
+    const parsed = JSON.parse(text.replace(/^\{\}&&/, ""));
+    homes = parsed?.payload?.homes ?? [];
+  } catch {
+    return [];
+  }
+
+  const out: LiveListing[] = [];
+  for (const h of homes) {
+    const price = Number(h.price?.value);
+    if (!Number.isFinite(price) || price <= 0) continue;
+    const beds = Number.isFinite(Number(h.beds)) && Number(h.beds) > 0 ? Number(h.beds) : null;
+    const baths = Number.isFinite(Number(h.baths)) && Number(h.baths) > 0 ? Number(h.baths) : null;
+    // Re-check what the payload can prove, in case the endpoint ignores a param someday.
+    if (opts.maxPrice && price > opts.maxPrice) continue;
+    if (opts.minBeds && beds !== null && beds < opts.minBeds) continue;
+    if (opts.minBaths && baths !== null && baths < opts.minBaths) continue;
+    const mls = (h.mlsId?.value ?? "").trim();
+    const yearBuilt = typeof h.yearBuilt === "object" ? Number(h.yearBuilt?.value) : Number(h.yearBuilt);
+    out.push({
+      address: h.streetLine?.value ?? "",
+      city: h.city ?? "",
+      state: h.state ?? "",
+      zip: h.postalCode?.value ?? "",
+      price,
+      beds,
+      baths,
+      sqft: Number(h.sqFt?.value) > 0 ? Number(h.sqFt?.value) : null,
+      pricePerSqft: Number(h.pricePerSqFt?.value) > 0 ? Number(h.pricePerSqFt?.value) : null,
+      daysOnMarket: Number(h.dom?.value) > 0 ? Number(h.dom?.value) : null,
+      propertyType: UI_PROPERTY_TYPES[Number(h.uiPropertyType)] ?? "",
+      url: h.url ? `https://www.redfin.com${h.url}` : "",
+      mls,
+      photoUrl: photoUrlFor(h.dataSourceId, mls, h.numPictures),
+      yearBuilt: Number.isFinite(yearBuilt) && yearBuilt > 0 ? yearBuilt : null,
+    });
+  }
+  return out.sort((a, b) => a.price - b.price);
+}
+
+/** CSV fallback (the "Download all" export): same filters, no photo metadata. */
+async function fetchViaCsv(params: URLSearchParams, opts: ListingFilters): Promise<LiveListing[]> {
   let text: string;
   try {
-    const res = await fetch(url, {
+    const res = await fetch(`https://www.redfin.com/stingray/api/gis-csv?${params}`, {
       headers: { "User-Agent": UA, Accept: "text/csv,*/*" },
-      // Be polite to an unofficial endpoint: cache each query for 15 minutes.
       next: { revalidate: 900 },
       signal: AbortSignal.timeout(15_000),
     });
@@ -151,6 +260,8 @@ export async function fetchLiveListings(opts: {
       propertyType: row[need("property type")] ?? "",
       url: row[urlIdx] ?? "",
       mls: (row[need("mls#")] ?? "").trim(),
+      photoUrl: null,
+      yearBuilt: num(row, "year built"),
     });
   }
   return out.sort((a, b) => a.price - b.price);

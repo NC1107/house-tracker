@@ -11,13 +11,17 @@ import { CHART } from "@/lib/chartTheme";
 export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
-  const [rate, rates, caseShiller, medianPrice, income] = await Promise.all([
+  const [rate, rates, caseShiller, medianPrice, income, dailyRate] = await Promise.all([
     latestMortgageRate("30yr"),
     rateHistory("30yr"),
     nationalSeries("case_shiller_national"),
     nationalSeries("median_sale_price_us"),
     nationalSeries("real_median_income"),
+    nationalSeries("mortgage_30yr_daily"),
   ]);
+
+  // Prefer daily rate for chart granularity; fall back to the weekly PMMS series.
+  const rateChart = dailyRate.length > 0 ? dailyRate : rates;
 
   const currentRate = rate?.rate ?? 6.8;
   const snap = buyerSnapshot(currentRate);
@@ -137,8 +141,10 @@ export default async function OverviewPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
-            <SectionTitle hint="Freddie Mac via FRED">30-year fixed mortgage rate</SectionTitle>
-            <TimeSeriesChart data={rates} format="percent" color={CHART.series1} />
+            <SectionTitle hint={dailyRate.length ? "Optimal Blue (daily) via FRED" : "Freddie Mac via FRED"}>
+              30-year fixed mortgage rate
+            </SectionTitle>
+            <TimeSeriesChart data={rateChart} format="percent2" color={CHART.series1} />
           </Card>
           <Card>
             <SectionTitle hint="S&P / FRED">Case-Shiller US National Home Price Index</SectionTitle>

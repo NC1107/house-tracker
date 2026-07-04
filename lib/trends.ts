@@ -112,6 +112,20 @@ export function buyingPowerSeries(rates: SeriesPoint[], incomes: SeriesPoint[], 
 }
 
 /**
+ * Year-over-year percent change of a monthly series (each point vs. ~12 months earlier).
+ * For home values, lower/negative is better for buyers (a cooling or falling market).
+ */
+export function yoyChangeSeries(series: SeriesPoint[]): SeriesPoint[] {
+  const out: SeriesPoint[] = [];
+  for (let i = 12; i < series.length; i++) {
+    const prev = series[i - 12].value;
+    if (!prev) continue;
+    out.push({ date: series[i].date, value: +(((series[i].value - prev) / prev) * 100).toFixed(1) });
+  }
+  return out;
+}
+
+/**
  * Inflation-adjusted ("real") index: deflate a nominal series by CPI and rebase to 100 at
  * the first point, so the line shows appreciation *above inflation* — flat means prices
  * merely kept pace with the cost of living.

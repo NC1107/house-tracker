@@ -47,6 +47,16 @@ export async function loadGeoIndex(level: string): Promise<Map<string, number>> 
   return new Map(rows.map((r) => [r.code, r.id]));
 }
 
+/** In-memory index of geography name (lowercased) -> id, for sources keyed by region name. */
+export async function loadGeoIndexByName(level: string): Promise<Map<string, number>> {
+  const db = getDb();
+  const rows = await db
+    .select({ id: geographies.id, name: geographies.name })
+    .from(geographies)
+    .where(sql`${geographies.level} = ${level}`);
+  return new Map(rows.map((r) => [r.name.trim().toLowerCase(), r.id]));
+}
+
 /**
  * Minimal RFC-4180-ish CSV parser (handles quoted fields with embedded commas/newlines).
  * Good enough for the well-formed research CSVs we ingest; swap for a streaming parser

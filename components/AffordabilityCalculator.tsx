@@ -82,6 +82,7 @@ export default function AffordabilityCalculator({
       {/* Inputs */}
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">Your numbers</h2>
+        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values — edit to match your situation.</p>
 
         <Field label="Gross annual income">
           <NumberInput value={income} onChange={setIncome} prefix="$" step={5000} />

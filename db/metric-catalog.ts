@@ -34,6 +34,7 @@ export const METRIC_CATALOG: MetricDef[] = [
 
   // Rates
   { metricKey: "mortgage_30yr", label: "30-Year Fixed Mortgage Rate", unit: "percent", category: "rate", source: "fred" },
+  { metricKey: "mortgage_30yr_daily", label: "30-Year Fixed Rate (daily)", unit: "percent", category: "rate", source: "fred", description: "Optimal Blue OBMMIC30YF — daily granularity for short timespans." },
   { metricKey: "mortgage_15yr", label: "15-Year Fixed Mortgage Rate", unit: "percent", category: "rate", source: "fred" },
   { metricKey: "treasury_10yr", label: "10-Year Treasury Yield", unit: "percent", category: "rate", source: "fred" },
 
@@ -57,4 +58,5 @@ export const FRED_SERIES: { seriesId: string; metricKey: string; freq: import("@
   { seriesId: "MEHOINUSA672N", metricKey: "real_median_income", freq: "annual" },
   { seriesId: "CPIAUCSL", metricKey: "cpi", freq: "monthly" },
   { seriesId: "MSACSR", metricKey: "months_supply_new", freq: "monthly" },
+  { seriesId: "OBMMIC30YF", metricKey: "mortgage_30yr_daily", freq: "daily" },
 ];

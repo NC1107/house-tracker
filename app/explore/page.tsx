@@ -1,6 +1,8 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
-import { PageHeader, Card, SectionTitle, EmptyNote } from "@/components/ui";
+import { ChartCard } from "@/components/ChartCard";
+import { PageHeader, EmptyNote } from "@/components/ui";
 import { statesList, metricHistory, dbConfigured } from "@/lib/queries";
+import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
 
 export const dynamic = "force-dynamic";
@@ -15,21 +17,20 @@ export default async function ExplorePage({
   const selectedId = geo ? Number(geo) : states[0]?.id;
   const selected = states.find((s) => s.id === selectedId);
 
-  const [zhvi, zori] = selectedId
-    ? await Promise.all([metricHistory(selectedId, "zhvi_all"), metricHistory(selectedId, "zori")])
-    : [[], []];
+  const zhvi = selectedId ? await metricHistory(selectedId, "zhvi_all") : [];
+  const yoy = yoyChangeSeries(zhvi);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Region Explorer"
-        subtitle="Drill from state down to metro, county, and ZIP as data is ingested. Compare home values and rents over time."
+        subtitle="Home values and how fast they're moving, by state. Pick a state to see its trend and whether the market is heating up or cooling for buyers."
       />
 
       {!dbConfigured() || states.length === 0 ? (
         <EmptyNote>
-          No geographies seeded yet. Run <code>npm run seed:geo</code> and the ingestion
-          scripts to explore regions. The data model supports nation → state → metro → county → ZIP.
+          No geographies seeded yet. Run <code>npm run seed:geo</code> and{" "}
+          <code>npm run ingest:zillow</code> to explore states.
         </EmptyNote>
       ) : (
         <>
@@ -45,16 +46,31 @@ export default async function ExplorePage({
             <button className="btn">View</button>
           </form>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <SectionTitle hint="Zillow ZHVI">{selected?.name}: typical home value</SectionTitle>
-              <TimeSeriesChart data={zhvi} format="usd" color={CHART.series1} />
-            </Card>
-            <Card>
-              <SectionTitle hint="Zillow ZORI">{selected?.name}: typical rent</SectionTitle>
-              <TimeSeriesChart data={zori} format="usd" color={CHART.series3} />
-            </Card>
-          </div>
+          {zhvi.length === 0 ? (
+            <EmptyNote>
+              No home-value data for {selected?.name} yet. Run <code>npm run ingest:zillow</code> to
+              populate state home values (Zillow ZHVI).
+            </EmptyNote>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <ChartCard
+                title={`${selected?.name}: typical home value`}
+                source="Zillow ZHVI"
+                direction="lower"
+                whatFor="The typical home value in this state over time. Lower (or a dip) means better entry prices for buyers."
+              >
+                <TimeSeriesChart data={zhvi} format="usd" color={CHART.series1} />
+              </ChartCard>
+              <ChartCard
+                title={`${selected?.name}: year-over-year price change`}
+                source="derived from ZHVI"
+                direction="lower"
+                whatFor="How fast prices are rising or falling. Falling/low growth (or negative) means a cooling market — better negotiating position and less risk of overpaying."
+              >
+                <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} />
+              </ChartCard>
+            </div>
+          )}
         </>
       )}
     </div>

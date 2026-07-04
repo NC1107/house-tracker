@@ -17,7 +17,7 @@ import { CHART } from "@/lib/chartTheme";
  * Value format for the Y axis / tooltip. Passed as a plain string (not a function) so this
  * client component can be rendered from a Server Component.
  */
-export type ValueFormat = "usd" | "percent" | "index" | "number";
+export type ValueFormat = "usd" | "percent" | "percent2" | "index" | "number";
 
 const RANGES: { key: string; days: number }[] = [
   { key: "1W", days: 7 },
@@ -37,6 +37,8 @@ function axisFormatter(format: ValueFormat): (v: number) => string {
       return (v) => `$${v.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 1 })}`;
     case "percent":
       return (v) => `${v.toFixed(1)}%`;
+    case "percent2":
+      return (v) => `${v.toFixed(2)}%`;
     case "index":
       return (v) => v.toFixed(0);
     default:
@@ -49,6 +51,7 @@ function tooltipFormatter(format: ValueFormat): (v: number) => string {
     case "usd":
       return (v) => v.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
     case "percent":
+    case "percent2":
       return (v) => `${v.toFixed(2)}%`;
     case "index":
       return (v) => v.toFixed(1);

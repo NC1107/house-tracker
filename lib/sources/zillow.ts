@@ -13,8 +13,10 @@ export interface ZillowFile {
   /** geography level the file is cut at */
   level: "zip" | "county" | "metro" | "state";
   url: string;
-  /** column holding the standardized region code we resolve against `geographies` */
+  /** column holding the region identifier we resolve against `geographies` */
   regionCodeCol: number;
+  /** how to match the region column to a geography row: by our `code` or by `name` */
+  resolveBy: "code" | "name";
   /** first column index that is a date */
   dateColStart: number;
   freq: "monthly";
@@ -28,29 +30,21 @@ const HOST = "https://files.zillowstatic.com/research/public_csvs";
  * standardized code is the ZIP itself (RegionName). Column indices below match Zillow's
  * current wide-CSV layout and may need adjustment when a file's header changes.
  */
+/**
+ * Active files. Currently state-level ZHVI (home values), resolved by state name — this
+ * populates the Region Explorer's state view. Zillow does not publish ZORI at the state
+ * level (only metro/ZIP), and metro/ZIP ZHVI/ZORI files are large and require metro/ZIP
+ * geographies to be seeded first (via the HUD crosswalk) — add those entries once that
+ * seeding lands.
+ */
 export const ZILLOW_FILES: ZillowFile[] = [
   {
     metricKey: "zhvi_all",
-    level: "zip",
-    url: `${HOST}/zhvi/Zip_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`,
-    regionCodeCol: 2, // RegionName == ZIP for ZIP-level files
-    dateColStart: 9,
-    freq: "monthly",
-  },
-  {
-    metricKey: "zhvi_all",
-    level: "metro",
-    url: `${HOST}/zhvi/Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`,
-    regionCodeCol: 2,
+    level: "state",
+    url: `${HOST}/zhvi/State_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`,
+    regionCodeCol: 2, // RegionName == state name
+    resolveBy: "name",
     dateColStart: 5,
-    freq: "monthly",
-  },
-  {
-    metricKey: "zori",
-    level: "zip",
-    url: `${HOST}/zori/Zip_zori_uc_sfrcondomfr_sm_month.csv`,
-    regionCodeCol: 2,
-    dateColStart: 9,
     freq: "monthly",
   },
 ];

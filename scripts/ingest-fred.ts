@@ -27,7 +27,14 @@ async function main() {
   const usId = await nationId();
 
   for (const s of FRED_SERIES) {
-    const points = await fetchFredSeries(s.seriesId, { observationStart: "2000-01-01" });
+    let points;
+    try {
+      points = await fetchFredSeries(s.seriesId, { observationStart: "2000-01-01" });
+    } catch (e) {
+      // One unavailable/renamed series shouldn't abort the whole ingestion.
+      console.warn(`FRED ${s.seriesId}: skipped (${(e as Error).message})`);
+      continue;
+    }
     console.log(`FRED ${s.seriesId}: ${points.length} observations`);
 
     if (s.metricKey === "mortgage_30yr" || s.metricKey === "mortgage_15yr") {

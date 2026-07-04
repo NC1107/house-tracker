@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { asOf, paymentToBuySeries, priceToIncomeSeries, rateSpreadSeries, housingBurdenSeries, buyingPowerSeries, realIndexSeries } from "./trends";
+import { asOf, paymentToBuySeries, priceToIncomeSeries, rateSpreadSeries, housingBurdenSeries, buyingPowerSeries, realIndexSeries, yoyChangeSeries } from "./trends";
 import { costOfWaiting } from "./costofwaiting";
 
 describe("asOf", () => {
@@ -91,6 +91,19 @@ describe("realIndexSeries", () => {
     const cpi = [{ date: "2020-01-01", value: 100 }, { date: "2021-01-01", value: 105 }];
     const s = realIndexSeries(nominal, cpi);
     expect(s[1].value).toBeGreaterThan(115);
+  });
+});
+
+describe("yoyChangeSeries", () => {
+  it("computes 12-month percent change", () => {
+    const s = Array.from({ length: 13 }, (_, i) => ({ date: `2024-${String(i + 1).padStart(2, "0")}-01`, value: 100 }));
+    s[12].value = 110; // +10% vs 12 months earlier
+    const out = yoyChangeSeries(s);
+    expect(out).toHaveLength(1);
+    expect(out[0].value).toBeCloseTo(10, 1);
+  });
+  it("returns empty when under 13 points", () => {
+    expect(yoyChangeSeries([{ date: "2024-01-01", value: 100 }])).toHaveLength(0);
   });
 });
 

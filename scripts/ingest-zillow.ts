@@ -7,12 +7,18 @@
  * geographies before reshaping.
  */
 import { ZILLOW_FILES, downloadCsv } from "@/lib/sources/zillow";
-import { parseCsv, wideToLong, upsertSeries, loadGeoIndex } from "@/lib/ingest";
+import { parseCsv, wideToLong, upsertSeries, loadGeoIndex, loadGeoIndexByName } from "@/lib/ingest";
 
 async function main() {
   for (const file of ZILLOW_FILES) {
     console.log(`Downloading ${file.metricKey} @ ${file.level} ...`);
-    const text = await downloadCsv(file.url);
+    let text: string;
+    try {
+      text = await downloadCsv(file.url);
+    } catch (e) {
+      console.warn(`  skipped ${file.metricKey}/${file.level}: ${(e as Error).message}`);
+      continue;
+    }
     const rows = parseCsv(text);
     const [header, ...dataRows] = rows;
     if (!header) {
@@ -20,13 +26,16 @@ async function main() {
       continue;
     }
 
-    const geoIndex = await loadGeoIndex(file.level);
+    const geoIndex =
+      file.resolveBy === "name"
+        ? await loadGeoIndexByName(file.level)
+        : await loadGeoIndex(file.level);
     const long = wideToLong(header, dataRows, {
       regionCodeCol: file.regionCodeCol,
       dateColStart: file.dateColStart,
       metricKey: file.metricKey,
       freq: file.freq,
-      resolveGeoId: (code) => geoIndex.get(code),
+      resolveGeoId: (code) => geoIndex.get(file.resolveBy === "name" ? code.trim().toLowerCase() : code),
     });
 
     const written = await upsertSeries(long);

@@ -35,6 +35,7 @@ export default function CostOfWaiting({ defaultRate = 6.8, defaultPrice = 415_00
     <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">If you wait…</h2>
+        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values — edit to match your situation.</p>
         <Field label="Home price today"><Num v={price} set={setPrice} prefix="$" step={10000} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Down payment"><Num v={downPct} set={setDownPct} suffix="%" step={1} /></Field>

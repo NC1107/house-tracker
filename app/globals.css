@@ -96,6 +96,9 @@ input:focus-visible,
     font-size: 0.8125rem;
     font-weight: 500;
     color: var(--text-2);
+    /* Long labels must wrap on narrow screens, never clip into ambiguity. */
+    white-space: normal;
+    overflow-wrap: break-word;
   }
 
   .input {

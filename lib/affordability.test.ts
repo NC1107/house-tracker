@@ -6,6 +6,7 @@ import {
   computePiti,
   computeDti,
   maxAffordablePrice,
+  maxPriceForPayment,
   requiredIncomeForPrice,
   breakevenRateForPrice,
   cashToClose,
@@ -256,5 +257,34 @@ describe("breakeven rate for a target price", () => {
 
   it("returns the ceiling when affordable across the whole range", () => {
     expect(breakevenRateForPrice({ ...base, homePrice: 50_000 })).toBe(15);
+  });
+});
+
+describe("max price for a monthly budget (cash-flow mode)", () => {
+  const base = {
+    downPayment: { kind: "percent", percent: 0.2 } as const,
+    annualRatePct: 6.5,
+    propertyTaxRate: 0.011,
+    insuranceRate: 0.005,
+  };
+
+  it("finds the price whose full PITI matches the budget", () => {
+    const r = maxPriceForPayment({ ...base, monthlyBudget: 2556 });
+    // Mirrors the PITI-breakdown vector: $400k home at these params costs ~$2,555.94/mo.
+    expect(r.maxHomePrice).toBeGreaterThan(397_000);
+    expect(r.maxHomePrice).toBeLessThan(403_000);
+    expect(r.piti.total).toBeLessThanOrEqual(2556);
+    expect(r.piti.total).toBeGreaterThan(2556 * 0.99);
+  });
+
+  it("returns 0 when the budget can't cover even the flat costs", () => {
+    const r = maxPriceForPayment({ ...base, monthlyBudget: 100, monthlyHoa: 200 });
+    expect(r.maxHomePrice).toBe(0);
+  });
+
+  it("a bigger budget always buys at least as much house", () => {
+    const small = maxPriceForPayment({ ...base, monthlyBudget: 1500 }).maxHomePrice;
+    const big = maxPriceForPayment({ ...base, monthlyBudget: 3000 }).maxHomePrice;
+    expect(big).toBeGreaterThan(small);
   });
 });

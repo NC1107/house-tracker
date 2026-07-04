@@ -150,8 +150,11 @@ export default function ProfileControls({
                   <NumberField value={dp} onChange={setDp} suffix="%" step={1} max={100} />
                 </label>
                 <label className="block">
-                  <span className="label">Other monthly debts</span>
+                  <span className="label">Monthly debt payments</span>
                   <NumberField value={debts} onChange={setDebts} prefix="$" step={50} />
+                  <p className="mt-1 text-xs leading-snug text-[var(--muted)]">
+                    Loan/card minimums only, not rent or general spending.
+                  </p>
                 </label>
               </div>
             </div>

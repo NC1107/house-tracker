@@ -542,6 +542,69 @@ export function requiredIncomeForPrice(inputs: {
 }
 
 /**
+ * The most expensive home whose full monthly payment (PITI + HOA + any PMI/MIP) fits a
+ * given monthly budget. This is the cash-flow view of affordability ("what my budget
+ * allows"), as opposed to the DTI view ("what a lender approves"): the budget is derived
+ * from take-home pay minus actual spending, not from gross income and debt ratios.
+ * PITI rises monotonically with price, so we bisect.
+ */
+export function maxPriceForPayment(inputs: {
+  monthlyBudget: number;
+  downPayment: DownPaymentMode;
+  annualRatePct: number;
+  termMonths?: number;
+  propertyTaxRate?: number;
+  insuranceRate?: number;
+  monthlyHoa?: number;
+  guideline?: Guideline;
+  pmiRate?: number;
+}): { maxHomePrice: number; downPayment: number; piti: PitiBreakdown } {
+  const {
+    monthlyBudget,
+    downPayment,
+    annualRatePct,
+    termMonths = DEFAULTS.termMonths,
+    propertyTaxRate = DEFAULTS.propertyTaxRate,
+    insuranceRate = DEFAULTS.insuranceRate,
+    monthlyHoa = 0,
+    guideline = GUIDELINES.conventional_classic,
+    pmiRate = DEFAULTS.pmiRate,
+  } = inputs;
+
+  const dpFor = (price: number): number =>
+    downPayment.kind === "amount" ? Math.min(downPayment.amount, price) : price * downPayment.percent;
+  const pitiAt = (price: number): PitiBreakdown =>
+    computePiti({
+      homePrice: price,
+      downPayment: dpFor(price),
+      annualRatePct,
+      termMonths,
+      propertyTaxRate,
+      insuranceRate,
+      monthlyHoa,
+      guideline,
+      pmiRate,
+    });
+
+  const zero = pitiAt(0);
+  if (monthlyBudget <= zero.total) {
+    return { maxHomePrice: 0, downPayment: dpFor(0), piti: zero };
+  }
+
+  let lo = 0; // fits
+  let hi = 100_000;
+  while (pitiAt(hi).total <= monthlyBudget && hi < 100_000_000) hi *= 2;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (pitiAt(mid).total <= monthlyBudget) lo = mid;
+    else hi = mid;
+  }
+  // Floor, not round: the returned price's payment must never exceed the budget.
+  const maxHomePrice = Math.floor(lo);
+  return { maxHomePrice, downPayment: dpFor(maxHomePrice), piti: pitiAt(maxHomePrice) };
+}
+
+/**
  * The highest mortgage rate at which the borrower still qualifies for `homePrice` under
  * the guideline (their "breakeven rate"). Affordability falls as the rate rises, so we
  * bisect on rate. Returns null when the price is out of reach even at `minRatePct`, and

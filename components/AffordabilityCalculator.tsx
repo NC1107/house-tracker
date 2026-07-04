@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   maxAffordablePrice,
+  maxPriceForPayment,
   cashToClose,
   GUIDELINES,
   type DownPaymentMode,
@@ -24,8 +25,13 @@ export default function AffordabilityCalculator({
   defaultDownPct?: number;
   defaultDebts?: number;
 }) {
+  const [mode, setMode] = useState<"dti" | "budget">("dti");
   const [income, setIncome] = useState(defaultIncome);
   const [debts, setDebts] = useState(defaultDebts);
+  // Budget mode: cash-flow based, in take-home dollars.
+  const [takeHome, setTakeHome] = useState(Math.round((defaultIncome * 0.75) / 12 / 50) * 50);
+  const [spending, setSpending] = useState(3_500);
+  const [cushion, setCushion] = useState(500);
   const [dpKind, setDpKind] = useState<DpKind>("percent");
   const [dpPercent, setDpPercent] = useState(defaultDownPct);
   const [dpAmount, setDpAmount] = useState(80_000);
@@ -42,8 +48,9 @@ export default function AffordabilityCalculator({
       : { kind: "amount", amount: dpAmount };
 
   const guideline = GUIDELINES[guidelineKey];
+  const housingBudget = Math.max(0, takeHome - spending - cushion);
 
-  const result = useMemo(
+  const dtiResult = useMemo(
     () =>
       maxAffordablePrice({
         grossAnnualIncome: income,
@@ -59,14 +66,30 @@ export default function AffordabilityCalculator({
     [income, debts, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
   );
 
+  const budgetResult = useMemo(
+    () =>
+      maxPriceForPayment({
+        monthlyBudget: housingBudget,
+        downPayment,
+        annualRatePct: rate,
+        termMonths: termYears * 12,
+        propertyTaxRate: taxRate / 100,
+        insuranceRate: insRate / 100,
+        monthlyHoa: hoa,
+        guideline,
+      }),
+    [housingBudget, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
+  );
+
+  const maxHomePrice = mode === "dti" ? dtiResult.maxHomePrice : budgetResult.maxHomePrice;
+  const resultDown = mode === "dti" ? dtiResult.downPayment : budgetResult.downPayment;
+
   // Rate-scenario sensitivity: how max price moves as rates shift.
   const scenarios = useMemo(
     () =>
       [-1, -0.5, 0, 0.5, 1].map((delta) => {
         const r = Math.max(0.01, rate + delta);
-        const res = maxAffordablePrice({
-          grossAnnualIncome: income,
-          monthlyDebts: debts,
+        const shared = {
           downPayment,
           annualRatePct: r,
           termMonths: termYears * 12,
@@ -74,14 +97,18 @@ export default function AffordabilityCalculator({
           insuranceRate: insRate / 100,
           monthlyHoa: hoa,
           guideline,
-        });
+        };
+        const res =
+          mode === "dti"
+            ? maxAffordablePrice({ grossAnnualIncome: income, monthlyDebts: debts, ...shared })
+            : maxPriceForPayment({ monthlyBudget: housingBudget, ...shared });
         return { delta, rate: r, price: res.maxHomePrice, piti: res.piti.total };
       }),
-    [income, debts, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
+    [mode, income, debts, housingBudget, dpKind, dpPercent, dpAmount, rate, termYears, taxRate, insRate, hoa, guidelineKey],
   );
 
-  const p = result.piti;
-  const cash = cashToClose({ homePrice: result.maxHomePrice, downPayment: result.downPayment, monthlyPiti: p.total });
+  const p = mode === "dti" ? dtiResult.piti : budgetResult.piti;
+  const cash = cashToClose({ homePrice: maxHomePrice, downPayment: resultDown, monthlyPiti: p.total });
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
@@ -90,13 +117,62 @@ export default function AffordabilityCalculator({
         <h2 className="text-lg font-semibold">Your numbers</h2>
         <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values. Edit to match your situation.</p>
 
-        <Field label="Gross annual income">
-          <NumberInput value={income} onChange={setIncome} prefix="$" step={5000} />
-        </Field>
+        <div className="inline-flex rounded-lg border border-[var(--border)] p-0.5 text-sm" role="group" aria-label="Affordability mode">
+          <button
+            type="button"
+            onClick={() => setMode("dti")}
+            aria-pressed={mode === "dti"}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "dti" ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
+            }`}
+          >
+            What a lender allows
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("budget")}
+            aria-pressed={mode === "budget"}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              mode === "budget" ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
+            }`}
+          >
+            What my budget allows
+          </button>
+        </div>
 
-        <Field label="Other monthly debt payments (cars, cards, loans)">
-          <NumberInput value={debts} onChange={setDebts} prefix="$" step={50} />
-        </Field>
+        {mode === "dti" ? (
+          <>
+            <Field label="Gross annual income">
+              <NumberInput value={income} onChange={setIncome} prefix="$" step={5000} />
+            </Field>
+
+            <Field
+              label="Monthly debt payments"
+              hint="Minimum required payments on loans, cards, and car notes only. NOT rent, groceries, or general spending; entering total spending here will wrongly zero out your result."
+            >
+              <NumberInput value={debts} onChange={setDebts} prefix="$" step={50} />
+            </Field>
+          </>
+        ) : (
+          <>
+            <Field label="Monthly take-home pay" hint="What actually hits your bank account after taxes and deductions.">
+              <NumberInput value={takeHome} onChange={setTakeHome} prefix="$" step={250} />
+            </Field>
+            <Field
+              label="Monthly spending (everything except housing)"
+              hint="Food, cars, insurance, subscriptions, fun; leave out your current rent or mortgage."
+            >
+              <NumberInput value={spending} onChange={setSpending} prefix="$" step={250} />
+            </Field>
+            <Field label="Monthly cushion to keep" hint="Savings margin you refuse to touch.">
+              <NumberInput value={cushion} onChange={setCushion} prefix="$" step={100} />
+            </Field>
+            <p className="rounded-lg bg-[var(--surface-2)] p-2 text-xs text-[var(--text-2)]">
+              Housing budget: <strong className="text-[var(--text-1)]">{usd(housingBudget)}/mo</strong>{" "}
+              (take-home {usd(takeHome)} - spending {usd(spending)} - cushion {usd(cushion)})
+            </p>
+          </>
+        )}
 
         <div>
           <div className="mb-1 flex items-center justify-between">
@@ -160,18 +236,27 @@ export default function AffordabilityCalculator({
       {/* Results */}
       <div className="space-y-6">
         <div className="card">
-          <p className="text-sm text-[var(--text-2)]">You can likely afford a home up to</p>
+          <p className="text-sm text-[var(--text-2)]">
+            {mode === "dti"
+              ? "A lender would likely approve a home up to"
+              : `Your budget (${usd(housingBudget)}/mo for housing) covers a home up to`}
+          </p>
           <p className="mt-1 text-4xl font-bold text-[var(--brand)]">
-            {usd(result.maxHomePrice)}
+            {usd(maxHomePrice)}
           </p>
           <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm text-[var(--text-2)]">
-            <span>Down payment: {usd(result.downPayment)}</span>
+            <span>Down payment: {usd(resultDown)}</span>
             <span>Loan: {usd(p.loanAmount)}</span>
             <span>LTV: {pct(p.ltv)}</span>
-            {result.isJumbo && (
+            {mode === "dti" && dtiResult.isJumbo && (
               <span className="font-medium text-[var(--warning)]">Jumbo loan (above conforming limit)</span>
             )}
           </div>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            {mode === "dti"
+              ? `Based on debt-to-income limits, what underwriting checks. Your own budget may be stricter: see "What my budget allows" (${usd(budgetResult.maxHomePrice)} at your current budget inputs).`
+              : `Based on your actual cash flow. A lender would separately need you to pass DTI checks (currently up to ${usd(dtiResult.maxHomePrice)} on the lender view); the lower of the two numbers is the safe one.`}
+          </p>
           <div className="mt-3 rounded-lg bg-[var(--surface-2)] p-3 text-sm">
             <div className="flex items-center justify-between">
               <span className="font-medium">Cash to buy</span>
@@ -200,21 +285,37 @@ export default function AffordabilityCalculator({
             </div>
           </div>
 
-          <div className="card">
-            <h3 className="mb-3 font-semibold">Qualification</h3>
-            <Row
-              label={`Front-end DTI${guideline.frontEndLimit ? ` (max ${pct(guideline.frontEndLimit, 0)})` : ""}`}
-              value={guideline.frontEndLimit ? pct(result.dti.frontEnd) : "n/a"}
-            />
-            <Row
-              label={`Back-end DTI (max ${pct(guideline.backEndLimit, 0)})`}
-              value={pct(result.dti.backEnd)}
-            />
-            <p className="mt-3 text-xs text-[var(--muted)]">
-              The max price is the point where your binding ratio hits its limit. Lower your
-              debts or raise your down payment to push it higher.
-            </p>
-          </div>
+          {mode === "dti" ? (
+            <div className="card">
+              <h3 className="mb-3 font-semibold">Qualification</h3>
+              <Row
+                label={`Front-end DTI${guideline.frontEndLimit ? ` (max ${pct(guideline.frontEndLimit, 0)})` : ""}`}
+                value={guideline.frontEndLimit ? pct(dtiResult.dti.frontEnd) : "n/a"}
+              />
+              <Row
+                label={`Back-end DTI (max ${pct(guideline.backEndLimit, 0)})`}
+                value={pct(dtiResult.dti.backEnd)}
+              />
+              <p className="mt-3 text-xs text-[var(--muted)]">
+                The max price is the point where your binding ratio hits its limit. Lower your
+                debts or raise your down payment to push it higher.
+              </p>
+            </div>
+          ) : (
+            <div className="card">
+              <h3 className="mb-3 font-semibold">Where the budget goes</h3>
+              <Row label="Take-home pay" value={usd(takeHome)} />
+              <Row label="Everyday spending" value={`-${usd(spending)}`} />
+              <Row label="Cushion kept" value={`-${usd(cushion)}`} />
+              <div className="mt-2 border-t border-[var(--border)] pt-2">
+                <Row label="Available for housing" value={usd(housingBudget)} bold />
+              </div>
+              <p className="mt-3 text-xs text-[var(--muted)]">
+                The max price is where the full payment (including taxes, insurance, and any
+                PMI) uses this whole amount. Raise the cushion for a safer number.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="card">
@@ -251,11 +352,12 @@ export default function AffordabilityCalculator({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
       <span className="label">{label}</span>
       {children}
+      {hint && <p className="mt-1 text-xs leading-snug text-[var(--muted)]">{hint}</p>}
     </label>
   );
 }

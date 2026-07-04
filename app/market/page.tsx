@@ -25,7 +25,8 @@ export default async function MarketPage({
   searchParams: Promise<{ geo?: string; metro?: string }>;
 }) {
   const { geo, metro } = await searchParams;
-  const [allStates, withData] = await Promise.all([statesList(), statesWithMarketData()]);
+  const [allStates, withDataIds] = await Promise.all([statesList(), statesWithMarketData()]);
+  const withData = new Set(withDataIds);
   // Only offer states that actually have Redfin metrics, so nobody lands on an empty view.
   const states = withData.size > 0 ? allStates.filter((s) => withData.has(s.id)) : allStates;
   const requested = geo ? Number(geo) : undefined;

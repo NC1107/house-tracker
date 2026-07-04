@@ -118,8 +118,12 @@ export function describeListingFilters(p: Record<string, unknown>): string {
   if (Number(p.minBeds) > 0) parts.push(`${p.minBeds}+ bd`);
   if (Number(p.minBaths) > 0) parts.push(`${p.minBaths}+ ba`);
   if (Number(p.minStories) > 1) parts.push(`${p.minStories}+ stories`);
+  if (Number(p.minSqft) > 0) parts.push(`${Number(p.minSqft).toLocaleString()}+ sqft`);
+  if (Number(p.minYearBuilt) > 0) parts.push(`built ${p.minYearBuilt}+`);
   if (p.basement) parts.push("basement");
-  if (Number(p.maxPrice) > 0) parts.push(`under ${usd(Number(p.maxPrice))}`);
+  if (Number(p.minPrice) > 0 && Number(p.maxPrice) > 0)
+    parts.push(`${usd(Number(p.minPrice))}-${usd(Number(p.maxPrice))}`);
+  else if (Number(p.maxPrice) > 0) parts.push(`under ${usd(Number(p.maxPrice))}`);
   return parts.join(", ") || "any home";
 }
 

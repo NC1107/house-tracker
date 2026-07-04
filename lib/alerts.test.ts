@@ -65,3 +65,41 @@ describe("dedupe keys are stable per period", () => {
     expect(a.dedupeKey).toBe(b.dedupeKey);
   });
 });
+
+describe("listing_match", () => {
+  const rule: AlertRule = {
+    id: 9,
+    type: "listing_match",
+    params: { stateName: "Ohio", maxPrice: 400_000, minBeds: 4, minBaths: 2, minStories: 2, basement: true },
+  };
+  const listing = (n: number) => ({
+    address: `${n} Main St`,
+    city: "Columbus",
+    price: 350_000 + n,
+    url: `https://example.com/${n}`,
+    mls: `MLS${n}`,
+  });
+
+  it("does not fire with no new listings", () => {
+    const ev = evaluateAlert(rule, { newListings: [], date: "2026-07-04" });
+    expect(ev.fired).toBe(false);
+  });
+
+  it("fires with a summary of the filters and linked listings", () => {
+    const ev = evaluateAlert(rule, { newListings: [listing(1), listing(2)], date: "2026-07-04" });
+    expect(ev.fired).toBe(true);
+    expect(ev.message).toContain("2 new listings in Ohio");
+    expect(ev.message).toContain("4+ bd");
+    expect(ev.message).toContain("2+ stories");
+    expect(ev.message).toContain("basement");
+    expect(ev.message).toContain("under $400,000");
+    expect(ev.message).toContain('href="https://example.com/1"');
+    expect(ev.dedupeKey!.length).toBeLessThanOrEqual(128);
+  });
+
+  it("caps the listing detail at five and counts the rest", () => {
+    const many = Array.from({ length: 8 }, (_, i) => listing(i));
+    const ev = evaluateAlert(rule, { newListings: many, date: "2026-07-04" });
+    expect(ev.message).toContain("and 3 more");
+  });
+});

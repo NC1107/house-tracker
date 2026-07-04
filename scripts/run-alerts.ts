@@ -8,7 +8,8 @@ import { getDb } from "@/db/client";
 import { alertRules, alertEvents, geographies } from "@/db/schema";
 import { latestMortgageRate, latestMetric, metricYoY } from "@/lib/queries";
 import { marketHeat } from "@/lib/marketheat";
-import { evaluateAlert, type AlertRule, type AlertEvaluation } from "@/lib/alerts";
+import { evaluateAlert, type AlertRule, type AlertEvaluation, type MatchedListing } from "@/lib/alerts";
+import { fetchLiveListings, type ListingFilters } from "@/lib/sources/redfin-live";
 import { sendEmail } from "@/lib/notify";
 
 async function main() {
@@ -58,6 +59,45 @@ async function main() {
       const yoy = await metricYoY(gid, "zhvi_all");
       const latest = await latestMetric(gid, "zhvi_all");
       ev = evaluateAlert(ar, { yoyPct: yoy == null ? null : yoy * 100, date: latest?.date ?? null });
+    } else if (rule.type === "listing_match") {
+      // Saved search: fetch matching live listings, keep only ones never seen for this
+      // rule (one alert_events row per listing), and notify about the new ones.
+      const filters = p as ListingFilters & { stateName?: string };
+      const listings = await fetchLiveListings({
+        stateName: String(filters.stateName ?? ""),
+        maxPrice: Number(filters.maxPrice) || undefined,
+        minBeds: Number(filters.minBeds) || undefined,
+        minBaths: Number(filters.minBaths) || undefined,
+        minStories: Number(filters.minStories) || undefined,
+        basement: Boolean(filters.basement),
+      });
+      const keyOf = (l: { mls: string; url: string }) => `mls:${l.mls || l.url}`.slice(0, 128);
+      const keys = listings.map(keyOf);
+      const seen = keys.length
+        ? await db
+            .select({ dedupeKey: alertEvents.dedupeKey })
+            .from(alertEvents)
+            .where(and(eq(alertEvents.ruleId, rule.id), inArray(alertEvents.dedupeKey, keys)))
+        : [];
+      const seenSet = new Set(seen.map((s) => s.dedupeKey));
+      const fresh: MatchedListing[] = listings
+        .filter((l) => !seenSet.has(keyOf(l)))
+        .map((l) => ({ address: l.address, city: l.city, price: l.price, url: l.url, mls: l.mls }));
+      // First run seeds the baseline silently so adding a rule doesn't email 350 homes.
+      const isFirstRun = seen.length === 0 && fresh.length === listings.length && listings.length > 0;
+      for (const l of fresh) {
+        await db
+          .insert(alertEvents)
+          .values({ ruleId: rule.id, dedupeKey: keyOf(l), payload: { price: l.price, url: l.url } })
+          .onConflictDoNothing();
+      }
+      if (!isFirstRun) {
+        ev = evaluateAlert(ar, { newListings: fresh, date: new Date().toISOString().slice(0, 10) });
+        if (ev.fired) fired.push({ rule, ev });
+      } else {
+        console.log(`listing_match #${rule.id}: seeded baseline of ${fresh.length} current listings`);
+      }
+      continue; // per-listing dedupe already handled; skip the generic block
     }
 
     if (ev.fired && ev.dedupeKey) {

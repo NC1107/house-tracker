@@ -18,6 +18,7 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
           <option value="rate_threshold">The 30-yr mortgage rate drops below a target</option>
           <option value="market_heat">A state becomes a buyer&apos;s market</option>
           <option value="price_move">A state&apos;s prices move by a threshold</option>
+          <option value="listing_match">A home matching my filters hits the market</option>
         </select>
       </label>
 
@@ -67,6 +68,48 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
             <span className="label">By at least (% YoY)</span>
             <input type="number" name="pctThreshold" min={0} step={0.5} defaultValue={3} className="input" />
           </label>
+        </div>
+      )}
+
+      {type === "listing_match" && (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block">
+              <span className="label">State</span>
+              <select name="stateName" className="input">
+                {states.map((s) => (
+                  <option key={s.id} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="label">Max price ($)</span>
+              <input type="number" name="maxPrice" min={0} step={10000} defaultValue={400000} className="input" />
+            </label>
+            <label className="block">
+              <span className="label">Min bedrooms</span>
+              <input type="number" name="minBeds" min={0} max={10} step={1} defaultValue={4} className="input" />
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="block">
+              <span className="label">Min bathrooms</span>
+              <input type="number" name="minBaths" min={0} max={10} step={1} defaultValue={2} className="input" />
+            </label>
+            <label className="block">
+              <span className="label">Min stories</span>
+              <input type="number" name="minStories" min={1} max={4} step={1} defaultValue={2} className="input" />
+            </label>
+            <label className="mt-6 flex items-center gap-2 text-sm">
+              <input type="checkbox" name="basement" value="1" className="accent-[var(--brand)]" />
+              Must have a basement
+            </label>
+          </div>
+          <p className="text-xs text-[var(--muted)]">
+            Checked daily against live listings. The first check records what&apos;s already on the
+            market; you&apos;re emailed only about homes that appear after that. Garage can&apos;t be
+            filtered by the listing feed, so check the listing itself for parking.
+          </p>
         </div>
       )}
 

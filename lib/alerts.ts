@@ -6,7 +6,12 @@
  */
 import { usd } from "@/lib/format";
 
-export type AlertRuleType = "rate_threshold" | "price_move" | "market_heat" | "affordability";
+export type AlertRuleType =
+  | "rate_threshold"
+  | "price_move"
+  | "market_heat"
+  | "affordability"
+  | "listing_match";
 
 export interface AlertRule {
   id: number | string;
@@ -99,6 +104,51 @@ export function evalAffordability(
   return noFire;
 }
 
+export interface MatchedListing {
+  address: string;
+  city: string;
+  price: number;
+  url: string;
+  mls: string;
+}
+
+/** Human-readable summary of a saved search's filters, used in messages and the UI. */
+export function describeListingFilters(p: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (Number(p.minBeds) > 0) parts.push(`${p.minBeds}+ bd`);
+  if (Number(p.minBaths) > 0) parts.push(`${p.minBaths}+ ba`);
+  if (Number(p.minStories) > 1) parts.push(`${p.minStories}+ stories`);
+  if (p.basement) parts.push("basement");
+  if (Number(p.maxPrice) > 0) parts.push(`under ${usd(Number(p.maxPrice))}`);
+  return parts.join(", ") || "any home";
+}
+
+/**
+ * New listings matched a saved search. The runner is responsible for passing ONLY
+ * listings not seen before (per-listing dedupe via alert_events); this evaluator just
+ * decides fired-ness and formats the message.
+ */
+export function evalListingMatch(
+  rule: AlertRule,
+  ctx: { newListings: MatchedListing[]; date: string | null },
+): AlertEvaluation {
+  if (!ctx.newListings.length) return noFire;
+  const where = (rule.params.stateName as string) ?? rule.regionName ?? "your search area";
+  const shown = ctx.newListings.slice(0, 5);
+  const items = shown
+    .map((l) => {
+      const label = `${l.address || "Address withheld"}, ${l.city} (${usd(l.price)})`;
+      return l.url ? `<a href="${l.url}">${label}</a>` : label;
+    })
+    .join("; ");
+  const extra = ctx.newListings.length > shown.length ? ` and ${ctx.newListings.length - shown.length} more` : "";
+  return {
+    fired: true,
+    message: `${ctx.newListings.length} new listing${ctx.newListings.length > 1 ? "s" : ""} in ${where} match your search (${describeListingFilters(rule.params)}): ${items}${extra}.`,
+    dedupeKey: `match:${rule.id}@${ctx.date}:${shown.map((l) => l.mls || l.url).join("|")}`.slice(0, 128),
+  };
+}
+
 /** Dispatch to the right evaluator. ctx is a superset of what each evaluator needs. */
 export function evaluateAlert(
   rule: AlertRule,
@@ -108,6 +158,7 @@ export function evaluateAlert(
     score?: number | null;
     requiredIncome?: number | null;
     income?: number;
+    newListings?: MatchedListing[];
     date?: string | null;
   },
 ): AlertEvaluation {
@@ -121,6 +172,8 @@ export function evaluateAlert(
       return evalMarketHeat(rule, { score: ctx.score ?? null, date });
     case "affordability":
       return evalAffordability(rule, { requiredIncome: ctx.requiredIncome ?? null, income: ctx.income ?? 0, date });
+    case "listing_match":
+      return evalListingMatch(rule, { newListings: ctx.newListings ?? [], date });
     default:
       return noFire;
   }

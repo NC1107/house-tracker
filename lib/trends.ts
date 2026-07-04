@@ -111,16 +111,38 @@ export function buyingPowerSeries(rates: SeriesPoint[], incomes: SeriesPoint[], 
   return out;
 }
 
+const MS_DAY = 86_400_000;
+
+function oneYearEarlier(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y - 1, m - 1, d));
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Latest point on or before `target`, as {date, value}. Series assumed ascending. */
+function pointAsOf(target: string, series: SeriesPoint[]): SeriesPoint | null {
+  let found: SeriesPoint | null = null;
+  for (const p of series) {
+    if (p.date <= target) found = p;
+    else break;
+  }
+  return found;
+}
+
 /**
- * Year-over-year percent change of a monthly series (each point vs. ~12 months earlier).
+ * Year-over-year percent change, matched by actual date (each point vs. the observation
+ * ~12 months earlier, tolerating up to ~75 days of gap for sparse/non-monthly series).
  * For home values, lower/negative is better for buyers (a cooling or falling market).
  */
 export function yoyChangeSeries(series: SeriesPoint[]): SeriesPoint[] {
   const out: SeriesPoint[] = [];
-  for (let i = 12; i < series.length; i++) {
-    const prev = series[i - 12].value;
-    if (!prev) continue;
-    out.push({ date: series[i].date, value: +(((series[i].value - prev) / prev) * 100).toFixed(1) });
+  for (const p of series) {
+    const target = oneYearEarlier(p.date);
+    const prev = pointAsOf(target, series);
+    if (!prev || prev.date === p.date || prev.value === 0) continue;
+    const gapDays = Math.abs(new Date(prev.date).getTime() - new Date(target).getTime()) / MS_DAY;
+    if (gapDays > 75) continue; // no comparable point ~1yr back
+    out.push({ date: p.date, value: +(((p.value - prev.value) / prev.value) * 100).toFixed(1) });
   }
   return out;
 }

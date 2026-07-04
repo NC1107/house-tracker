@@ -107,12 +107,12 @@ export default function RentVsBuy({ defaultRate = 6.8, defaultRent = 2_200 }: { 
           <h3 className="mb-3 font-semibold">Net worth over time: buy vs. rent</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData} margin={{ top: 8, right: 12, bottom: 0, left: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
-              <XAxis dataKey="year" tick={{ fontSize: 11 }} tickFormatter={(y) => `${Math.round(y)}y`} minTickGap={32} />
-              <YAxis tick={{ fontSize: 11 }} width={64} tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `$${Math.round(v / 1000)}k` : `$${v}`)} />
-              <Tooltip formatter={(v: number) => usd(v)} labelFormatter={(y) => `Year ${Math.round(Number(y))}`} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} strokeOpacity={0.35} vertical={false} />
+              <XAxis dataKey="year" tick={{ fontSize: 11, fill: CHART.axis }} tickLine={false} axisLine={{ stroke: CHART.grid }} tickFormatter={(y) => `${Math.round(y)}y`} minTickGap={32} />
+              <YAxis tick={{ fontSize: 11, fill: CHART.axis }} tickLine={false} axisLine={false} width={64} tickFormatter={(v: number) => `$${v.toLocaleString("en-US", { notation: "compact", maximumFractionDigits: 1 })}`} />
+              <Tooltip formatter={(v: number) => usd(v)} labelFormatter={(y) => `Year ${Math.round(Number(y))}`} contentStyle={{ fontSize: 12, borderRadius: 10 }} cursor={{ stroke: CHART.axis, strokeWidth: 1, strokeDasharray: "3 3" }} />
               <Legend />
-              {be && <ReferenceLine x={+(be / 12).toFixed(2)} stroke="#94a3b8" strokeDasharray="4 4" label={{ value: "breakeven", fontSize: 11, fill: "#94a3b8" }} />}
+              {be && <ReferenceLine x={+(be / 12).toFixed(2)} stroke={CHART.axis} strokeDasharray="4 4" label={{ value: "breakeven", fontSize: 11, fill: CHART.axis }} />}
               <Line type="monotone" dataKey="Buy" stroke={CHART.series1} strokeWidth={2} dot={false} isAnimationActive={false} />
               <Line type="monotone" dataKey="Rent" stroke={CHART.series2} strokeWidth={2} dot={false} isAnimationActive={false} />
             </LineChart>

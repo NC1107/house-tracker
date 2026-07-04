@@ -1,4 +1,4 @@
-import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote } from "@/components/ui";
+import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
 import { statesList, latestMetric, metricYoY, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 
@@ -29,6 +29,7 @@ export default async function MarketPage({
   const selected = states.find((s) => s.id === selectedId);
 
   let heat = null as ReturnType<typeof marketHeat> | null;
+  let through: string | undefined;
   if (selectedId) {
     const [mos, dom, drops, s2l, invTrend] = await Promise.all([
       latestMetric(selectedId, "months_of_supply"),
@@ -45,6 +46,7 @@ export default async function MarketPage({
       inventoryTrendYoY: invTrend ?? undefined,
     };
     heat = marketHeat(inputs);
+    through = [mos, dom, drops, s2l].map((m) => m?.date).filter(Boolean).sort().at(-1) as string | undefined;
   }
 
   return (
@@ -52,6 +54,7 @@ export default async function MarketPage({
       <PageHeader
         title="Market Heat & Deal Signals"
         subtitle="A 0–100 buyer-leverage score from inventory, days-on-market, price cuts, and sale-to-list. Higher means more negotiating power for you."
+        action={<Freshness date={through} />}
       />
 
       {!dbConfigured() || states.length === 0 ? (

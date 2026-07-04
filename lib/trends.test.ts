@@ -95,14 +95,26 @@ describe("realIndexSeries", () => {
 });
 
 describe("yoyChangeSeries", () => {
-  it("computes 12-month percent change", () => {
-    const s = Array.from({ length: 13 }, (_, i) => ({ date: `2024-${String(i + 1).padStart(2, "0")}-01`, value: 100 }));
-    s[12].value = 110; // +10% vs 12 months earlier
-    const out = yoyChangeSeries(s);
-    expect(out).toHaveLength(1);
-    expect(out[0].value).toBeCloseTo(10, 1);
+  // 13 contiguous months: 2024-01 .. 2025-01
+  const months = Array.from({ length: 13 }, (_, i) => {
+    const y = 2024 + Math.floor(i / 12);
+    const m = (i % 12) + 1;
+    return `${y}-${String(m).padStart(2, "0")}-01`;
   });
-  it("returns empty when under 13 points", () => {
+  it("computes 12-month percent change matched by date", () => {
+    const s = months.map((date) => ({ date, value: 100 }));
+    s[12].value = 110; // 2025-01 vs 2024-01 = +10%
+    const out = yoyChangeSeries(s);
+    expect(out.at(-1)!.value).toBeCloseTo(10, 1);
+  });
+  it("skips when there is no comparable point ~1yr back (gap too large)", () => {
+    const s = [
+      { date: "2020-01-01", value: 100 },
+      { date: "2024-01-01", value: 150 }, // 4yr gap, no ~1yr-prior point
+    ];
+    expect(yoyChangeSeries(s)).toHaveLength(0);
+  });
+  it("returns empty for a single point", () => {
     expect(yoyChangeSeries([{ date: "2024-01-01", value: 100 }])).toHaveLength(0);
   });
 });

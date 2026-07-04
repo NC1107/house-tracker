@@ -1,6 +1,6 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { ChartCard } from "@/components/ChartCard";
-import { PageHeader, EmptyNote } from "@/components/ui";
+import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
 import { nationalSeries, rateHistory, dbConfigured } from "@/lib/queries";
 import {
   paymentToBuySeries,
@@ -19,7 +19,7 @@ export default async function TrendsPage() {
     rateHistory("30yr"),
     nationalSeries("treasury_10yr"),
     nationalSeries("median_sale_price_us"),
-    nationalSeries("real_median_income"),
+    nationalSeries("nominal_median_income"),
     nationalSeries("case_shiller_national"),
     nationalSeries("cpi"),
     nationalSeries("months_supply_new"),
@@ -33,12 +33,18 @@ export default async function TrendsPage() {
   const spread = rateSpreadSeries(rates, treasury);
 
   const hasData = payment.length > 0 || rates.length > 0;
+  const through = [rates, medianPrice, supply, caseShiller]
+    .map((s) => s.at(-1)?.date)
+    .filter(Boolean)
+    .sort()
+    .at(-1) as string | undefined;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Buying-Power Trends"
         subtitle="The long view on affordability. Each chart says which direction is good for you as a buyer."
+        action={<Freshness date={through} />}
       />
 
       {!dbConfigured() || !hasData ? (

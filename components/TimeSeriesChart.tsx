@@ -108,9 +108,25 @@ export default function TimeSeriesChart({
     );
   }
 
-  const yAxis = axisFormatter(format);
   const yTip = tooltipFormatter(format);
   const showControls = ranges && available.length > 1;
+
+  // Span-aware Y precision for percent: a tight range (e.g. a 1M rate chart) needs more
+  // decimals so ticks don't all collapse to the same label.
+  const values = shown.map((p) => p.value);
+  const vrange = values.length ? Math.max(...values) - Math.min(...values) : 0;
+  const yAxis =
+    format === "percent"
+      ? (v: number) => `${v.toFixed(vrange < 2 ? 2 : vrange < 20 ? 1 : 0)}%`
+      : axisFormatter(format);
+
+  // Span-aware X date format so a within-month window doesn't show "2026-06" repeatedly.
+  const spanDays =
+    shown.length > 1
+      ? (new Date(shown[shown.length - 1].date).getTime() - new Date(shown[0].date).getTime()) / DAY
+      : 0;
+  const xFormat = (d: string) =>
+    spanDays <= 120 ? d.slice(5) : spanDays <= 3 * 365 ? d.slice(0, 7) : d.slice(0, 4);
 
   return (
     <div>
@@ -147,7 +163,7 @@ export default function TimeSeriesChart({
             tickLine={false}
             axisLine={{ stroke: CHART.grid }}
             minTickGap={48}
-            tickFormatter={(d: string) => d.slice(0, 7)}
+            tickFormatter={xFormat}
           />
           <YAxis
             tick={{ fontSize: 11, fill: CHART.axis }}

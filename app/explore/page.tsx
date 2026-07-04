@@ -1,6 +1,6 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { ChartCard } from "@/components/ChartCard";
-import { PageHeader, EmptyNote } from "@/components/ui";
+import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
 import { statesList, metricHistory, dbConfigured } from "@/lib/queries";
 import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
@@ -25,6 +25,7 @@ export default async function ExplorePage({
       <PageHeader
         title="Region Explorer"
         subtitle="Home values and how fast they're moving, by state. Pick a state to see its trend and whether the market is heating up or cooling for buyers."
+        action={<Freshness date={zhvi.at(-1)?.date} />}
       />
 
       {!dbConfigured() || states.length === 0 ? (

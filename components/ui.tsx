@@ -91,3 +91,13 @@ export function Bar({ score, color }: { score: number; color: string }) {
 export function EmptyNote({ children }: { children: ReactNode }) {
   return <div className="card text-sm text-[var(--text-2)]">{children}</div>;
 }
+
+/** "Data through {date}" freshness caption. Pass the latest period date of the surface. */
+export function Freshness({ date, label = "Data through" }: { date?: string | null; label?: string }) {
+  if (!date) return null;
+  return (
+    <p className="text-xs text-[var(--muted)]">
+      {label} {date}
+    </p>
+  );
+}

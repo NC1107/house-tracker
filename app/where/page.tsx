@@ -1,4 +1,4 @@
-import { PageHeader, Card, SectionTitle, EmptyNote } from "@/components/ui";
+import { PageHeader, Card, SectionTitle, EmptyNote, Freshness } from "@/components/ui";
 import ChoroplethMap, { type StateDatum } from "@/components/ChoroplethMap";
 import { statePaths } from "@/lib/geo/usStates";
 import { latestMetricByState, latestMortgageRate, dbConfigured } from "@/lib/queries";
@@ -31,6 +31,7 @@ export default async function WherePage() {
       <PageHeader
         title="Where Can We Afford?"
         subtitle={`Every state colored by how affordable its typical home is to the median US household ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`}
+        action={<Freshness date={states.map((s) => s.date).sort().at(-1)} label="Home values through" />}
       />
 
       {!dbConfigured() || data.length === 0 ? (

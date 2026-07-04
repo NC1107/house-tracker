@@ -16,7 +16,7 @@ export default async function OverviewPage() {
     rateHistory("30yr"),
     nationalSeries("case_shiller_national"),
     nationalSeries("median_sale_price_us"),
-    nationalSeries("real_median_income"),
+    nationalSeries("nominal_median_income"),
     nationalSeries("mortgage_30yr_daily"),
   ]);
 

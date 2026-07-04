@@ -1,7 +1,6 @@
 import Link from "next/link";
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
-import { usd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -53,12 +52,12 @@ export default async function OverviewPage() {
 
       <div className="card">
         <h2 className="mb-3 font-semibold">30-year fixed mortgage rate</h2>
-        <TimeSeriesChart data={rates} yFormat={(v) => `${v.toFixed(1)}%`} />
+        <TimeSeriesChart data={rates} format="percent" />
       </div>
 
       <div className="card">
         <h2 className="mb-3 font-semibold">Case-Shiller US National Home Price Index</h2>
-        <TimeSeriesChart data={caseShiller} color="#059669" yFormat={(v) => v.toFixed(0)} />
+        <TimeSeriesChart data={caseShiller} color="#059669" format="index" />
       </div>
     </div>
   );

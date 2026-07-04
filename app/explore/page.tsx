@@ -1,6 +1,5 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { statesList, metricHistory, dbConfigured } from "@/lib/queries";
-import { usd } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -56,12 +55,12 @@ export default async function ExplorePage({
             <h2 className="mb-3 font-semibold">
               {selected?.name}: Home value (ZHVI)
             </h2>
-            <TimeSeriesChart data={zhvi} yFormat={(v) => usd(v)} />
+            <TimeSeriesChart data={zhvi} format="usd" />
           </div>
 
           <div className="card">
             <h2 className="mb-3 font-semibold">{selected?.name}: Rent (ZORI)</h2>
-            <TimeSeriesChart data={zori} color="#7c3aed" yFormat={(v) => usd(v)} />
+            <TimeSeriesChart data={zori} color="#7c3aed" format="usd" />
           </div>
         </>
       )}

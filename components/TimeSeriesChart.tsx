@@ -11,14 +11,53 @@ import {
 } from "recharts";
 import type { SeriesPoint } from "@/lib/types";
 
+/**
+ * Value format for the Y axis / tooltip. Passed as a plain string (not a function) so this
+ * client component can be rendered from a Server Component — React Server Components cannot
+ * receive function props.
+ */
+export type ValueFormat = "usd" | "percent" | "index" | "number";
+
+function axisFormatter(format: ValueFormat): (v: number) => string {
+  switch (format) {
+    case "usd":
+      return (v) =>
+        Math.abs(v) >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v.toFixed(0)}`;
+    case "percent":
+      return (v) => `${v.toFixed(1)}%`;
+    case "index":
+      return (v) => v.toFixed(0);
+    default:
+      return (v) => v.toLocaleString("en-US");
+  }
+}
+
+function tooltipFormatter(format: ValueFormat): (v: number) => string {
+  switch (format) {
+    case "usd":
+      return (v) =>
+        v.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        });
+    case "percent":
+      return (v) => `${v.toFixed(2)}%`;
+    case "index":
+      return (v) => v.toFixed(1);
+    default:
+      return (v) => v.toLocaleString("en-US");
+  }
+}
+
 export default function TimeSeriesChart({
   data,
   color = "#2563eb",
-  yFormat = (v: number) => String(v),
+  format = "number",
 }: {
   data: SeriesPoint[];
   color?: string;
-  yFormat?: (v: number) => string;
+  format?: ValueFormat;
 }) {
   if (!data.length) {
     return (
@@ -27,6 +66,8 @@ export default function TimeSeriesChart({
       </div>
     );
   }
+  const yAxis = axisFormatter(format);
+  const yTip = tooltipFormatter(format);
   return (
     <ResponsiveContainer width="100%" height={224}>
       <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
@@ -37,9 +78,9 @@ export default function TimeSeriesChart({
           minTickGap={48}
           tickFormatter={(d: string) => d.slice(0, 7)}
         />
-        <YAxis tick={{ fontSize: 11 }} width={56} tickFormatter={yFormat} domain={["auto", "auto"]} />
+        <YAxis tick={{ fontSize: 11 }} width={56} tickFormatter={yAxis} domain={["auto", "auto"]} />
         <Tooltip
-          formatter={(v: number) => yFormat(v)}
+          formatter={(v: number) => yTip(v)}
           labelFormatter={(d) => String(d)}
           contentStyle={{ fontSize: 12, borderRadius: 8 }}
         />

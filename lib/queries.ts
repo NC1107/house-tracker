@@ -16,7 +16,8 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
   } catch (e) {
-    console.error("[queries] falling back:", (e as Error).message);
+    // Expected before migrations/ingestion have run — the UI shows an empty state.
+    console.warn("[queries] no data yet, showing empty state:", (e as Error).message);
     return fallback;
   }
 }

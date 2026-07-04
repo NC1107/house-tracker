@@ -32,6 +32,20 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-shot init: create tables and seed geographies before the app starts.
+  migrate:
+    image: ghcr.io/nc1107/house-tracker-tools:${IMAGE_TAG:-latest}
+    command: sh -c "npm run db:migrate && npm run seed:geo"
+    restart: "no"
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://housetracker:housetracker@db:5432/housetracker}
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      db:
+        condition: service_healthy
+
   web:
     image: ghcr.io/nc1107/house-tracker:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -45,6 +59,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # One-shot utility image (migrations / seeding / ingestion) run via `compose run`.
   tools:

@@ -29,6 +29,10 @@ docker compose -f docker-compose.ghcr.yml up -d
 # -> http://<server-ip>:3000
 ```
 
+On startup a one-shot `migrate` service creates the tables and seeds the geographies
+automatically, then the web app starts — so it boots clean with no manual DB steps. The
+affordability calculator works immediately; price/rate charts stay empty until you ingest.
+
 Load data (optional — needs a free FRED key in `.env`):
 
 ```bash

@@ -5,11 +5,24 @@ import { costOfWaiting } from "@/lib/costofwaiting";
 import { usd } from "@/lib/format";
 import NumberField from "@/components/NumberField";
 
-export default function CostOfWaiting({ defaultRate = 6.8, defaultPrice = 415_000 }: { defaultRate?: number; defaultPrice?: number }) {
+export default function CostOfWaiting({
+  defaultRate = 6.8,
+  defaultPrice = 415_000,
+  forecastPct = null,
+  forecastDate = null,
+}: {
+  defaultRate?: number;
+  defaultPrice?: number;
+  /** Zillow's 12-month national home-value forecast (%), used as the price-change default. */
+  forecastPct?: number | null;
+  forecastDate?: string | null;
+}) {
   const [price, setPrice] = useState(defaultPrice);
   const [downPct, setDownPct] = useState(20);
   const [rate, setRate] = useState(defaultRate);
-  const [priceChange, setPriceChange] = useState(4);
+  const [priceChange, setPriceChange] = useState(
+    forecastPct !== null ? Math.round(forecastPct * 2) / 2 : 4,
+  );
   const [rateChange, setRateChange] = useState(0.5);
   const [wait, setWait] = useState(12);
 
@@ -36,7 +49,11 @@ export default function CostOfWaiting({ defaultRate = 6.8, defaultPrice = 415_00
     <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
       <div className="card space-y-4">
         <h2 className="text-lg font-semibold">If you wait…</h2>
-        <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values. Edit to match your situation.</p>
+        <p className="-mt-2 text-xs text-[var(--muted)]">
+          {forecastPct !== null
+            ? `Price change prefilled from Zillow's 12-month US forecast (${forecastPct >= 0 ? "+" : ""}${forecastPct.toFixed(1)}% as of ${forecastDate}). Edit anything to match your situation.`
+            : "Prefilled with average US values. Edit to match your situation."}
+        </p>
         <Field label="Home price today"><Num v={price} set={setPrice} prefix="$" step={10000} /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Down payment"><Num v={downPct} set={setDownPct} suffix="%" step={1} /></Field>
@@ -46,7 +63,7 @@ export default function CostOfWaiting({ defaultRate = 6.8, defaultPrice = 415_00
           <input type="range" min={3} max={36} step={3} value={wait} onChange={(e) => setWait(+e.target.value)} className="w-full accent-[var(--brand)]" />
         </Field>
         <Field label={`Prices change ${priceChange > 0 ? "+" : ""}${priceChange}% / yr`}>
-          <input type="range" min={-10} max={12} step={1} value={priceChange} onChange={(e) => setPriceChange(+e.target.value)} className="w-full accent-[var(--brand)]" />
+          <input type="range" min={-10} max={12} step={0.5} value={priceChange} onChange={(e) => setPriceChange(+e.target.value)} className="w-full accent-[var(--brand)]" />
         </Field>
         <Field label={`Rate changes ${rateChange > 0 ? "+" : ""}${rateChange} pts`}>
           <input type="range" min={-2} max={2} step={0.25} value={rateChange} onChange={(e) => setRateChange(+e.target.value)} className="w-full accent-[var(--brand)]" />

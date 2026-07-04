@@ -46,6 +46,10 @@ jobs:
         run: npm run ingest:fhfa
       - name: Ingest Census ACS (state income; skips without key)
         run: npm run ingest:census
+      - name: Ingest Freddie Mac FMHPI
+        run: npm run ingest:fmhpi
+      - name: Ingest HUD fair market rents (skips without token)
+        run: npm run ingest:hud
 
       - name: Evaluate alerts and email if any fired
         run: npm run alerts:run

@@ -19,10 +19,12 @@ export const METRIC_CATALOG: MetricDef[] = [
   { metricKey: "median_list_price", label: "Median List Price", unit: "usd", category: "price", source: "realtor" },
   { metricKey: "case_shiller_national", label: "Case-Shiller National HPI", unit: "index", category: "price", source: "fred" },
   { metricKey: "fhfa_hpi", label: "FHFA House Price Index", unit: "index", category: "price", source: "fred" },
+  { metricKey: "fmhpi", label: "Freddie Mac House Price Index", unit: "index", category: "price", source: "fred", description: "Monthly state HPI (seasonally adjusted) since 1975." },
   { metricKey: "zhvf_forecast", label: "Zillow Home Value Forecast (1yr)", unit: "percent", category: "price", source: "zillow" },
 
   // Rent
   { metricKey: "zori", label: "Zillow Observed Rent Index", unit: "usd", category: "rent", source: "zillow" },
+  { metricKey: "fmr_2br", label: "Fair Market Rent (2BR)", unit: "usd", category: "rent", source: "hud", description: "HUD 2-bedroom FMR; state value is the median across counties." },
 
   // Market heat
   { metricKey: "days_on_market", label: "Median Days on Market", unit: "days", category: "market", source: "redfin" },
@@ -35,6 +37,7 @@ export const METRIC_CATALOG: MetricDef[] = [
   { metricKey: "pending_ratio", label: "Pending-to-Active Ratio", unit: "ratio", category: "market", source: "realtor", description: "Pending sales relative to active listings; higher means demand is absorbing supply faster." },
   { metricKey: "housing_starts", label: "Housing Starts", unit: "count", category: "market", source: "fred", description: "HOUST, new privately-owned housing units started (SAAR, thousands)." },
   { metricKey: "building_permits", label: "Building Permits", unit: "count", category: "market", source: "fred", description: "PERMIT, new privately-owned housing units authorized (SAAR, thousands)." },
+  { metricKey: "existing_home_sales", label: "Existing Home Sales", unit: "count", category: "market", source: "fred", description: "EXHOSLUSM495S (SAAR); skipped gracefully if FRED no longer carries it." },
 
   // Rates
   { metricKey: "mortgage_30yr", label: "30-Year Fixed Mortgage Rate", unit: "percent", category: "rate", source: "fred" },
@@ -67,4 +70,5 @@ export const FRED_SERIES: { seriesId: string; metricKey: string; freq: import("@
   { seriesId: "OBMMIC30YF", metricKey: "mortgage_30yr_daily", freq: "daily" },
   { seriesId: "HOUST", metricKey: "housing_starts", freq: "monthly" },
   { seriesId: "PERMIT", metricKey: "building_permits", freq: "monthly" },
+  { seriesId: "EXHOSLUSM495S", metricKey: "existing_home_sales", freq: "monthly" },
 ];

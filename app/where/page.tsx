@@ -10,24 +10,31 @@ import { usd } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function WherePage() {
-  const [rateRow, states] = await Promise.all([
+  const [rateRow, states, stateIncomes] = await Promise.all([
     latestMortgageRate("30yr"),
     latestMetricByState("zhvi_all"),
+    latestMetricByState("median_household_income"),
   ]);
   const rate = rateRow?.rate ?? 6.8;
   const profile = await getProfile();
   const income = profile.income;
   const geo = statePaths();
 
-  const data: StateDatum[] = states
+  // In the US-average view, judge each state against ITS OWN median income (Census ACS)
+  // when that data is ingested; a personalized profile always uses the user's income.
+  const incomeByState = new Map(stateIncomes.map((s) => [s.stateCode, s.value]));
+  const usingLocalIncomes = !profile.isCustom && incomeByState.size > 0;
+
+  const data: (StateDatum & { localIncome: number })[] = states
     .map((s) => {
-      const a = computeStateAffordability(s.value, income, rate, {
+      const localIncome = profile.isCustom ? income : (incomeByState.get(s.stateCode) ?? income);
+      const a = computeStateAffordability(s.value, localIncome, rate, {
         propertyTaxRate: statePropertyTaxRate(s.stateCode),
         insuranceRate: stateInsuranceRate(s.stateCode),
         monthlyDebts: profile.monthlyDebts,
         downPct: profile.downPct,
       });
-      return { stateCode: s.stateCode, name: s.name, ...a };
+      return { stateCode: s.stateCode, name: s.name, localIncome, ...a };
     })
     .sort((a, b) => a.requiredIncome - b.requiredIncome);
 
@@ -37,7 +44,11 @@ export default async function WherePage() {
     <div className="space-y-6">
       <PageHeader
         title="Where Can We Afford?"
-        subtitle={`Every state colored by how its typical home compares to ${profile.isCustom ? "your" : "the median US"} household income ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`}
+        subtitle={
+          usingLocalIncomes
+            ? `Every state colored by how its typical home compares to that state's own median household income (Census ACS) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`
+            : `Every state colored by how its typical home compares to ${profile.isCustom ? "your" : "the median US"} household income ($${income.toLocaleString()}/yr) at today's ${rate.toFixed(2)}% rate. Greener is more affordable.`
+        }
         action={<Freshness date={states.map((s) => s.date).sort().at(-1)} label="Home values through" />}
       />
 
@@ -72,6 +83,7 @@ export default async function WherePage() {
                     <th className="py-1 pr-4 font-medium">Typical home</th>
                     <th className="py-1 pr-4 font-medium">Price-to-income</th>
                     <th className="py-1 pr-4 font-medium">Income needed</th>
+                    {usingLocalIncomes && <th className="py-1 pr-4 font-medium">Median income here</th>}
                     <th className="py-1 pr-4 font-medium">Payment</th>
                     <th className="py-1 font-medium">Median household</th>
                   </tr>
@@ -88,6 +100,7 @@ export default async function WherePage() {
                         </span>
                       </td>
                       <td className="py-1.5 pr-4 tabular-nums">{usd(d.requiredIncome)}</td>
+                      {usingLocalIncomes && <td className="py-1.5 pr-4 tabular-nums">{usd(d.localIncome)}</td>}
                       <td className="py-1.5 pr-4 tabular-nums">{usd(d.monthlyPayment)}/mo</td>
                       <td className="py-1.5" style={{ color: d.affordable ? "var(--good-ink)" : "var(--critical)" }}>
                         {d.affordable ? "Affordable" : "Stretched"}

@@ -18,6 +18,7 @@ const nav: Entry[] = [
       { href: "/explore", label: "Region Explorer" },
       { href: "/where", label: "Where to Buy" },
       { href: "/market", label: "Market Heat" },
+      { href: "/deals", label: "Live Deals" },
     ],
   },
   {

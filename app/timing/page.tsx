@@ -1,12 +1,16 @@
 import CostOfWaiting from "@/components/CostOfWaiting";
 import { PageHeader } from "@/components/ui";
-import { latestMortgageRate } from "@/lib/queries";
+import { latestMortgageRate, nationalSeries } from "@/lib/queries";
 import { NATIONAL } from "@/lib/reference";
 
 export const dynamic = "force-dynamic";
 
 export default async function TimingPage() {
-  const rate = await latestMortgageRate("30yr");
+  const [rate, forecastSeries] = await Promise.all([
+    latestMortgageRate("30yr"),
+    nationalSeries("zhvf_forecast"),
+  ]);
+  const forecast = forecastSeries.at(-1) ?? null;
   return (
     <div className="space-y-6">
       <PageHeader
@@ -19,7 +23,12 @@ export default async function TimingPage() {
         <a href="/rent-vs-buy" className="font-medium text-[var(--brand)] underline">Rent vs. Buy</a>{" "}
         for the full picture.
       </p>
-      <CostOfWaiting defaultRate={rate?.rate ?? 6.8} defaultPrice={NATIONAL.medianHomePrice} />
+      <CostOfWaiting
+        defaultRate={rate?.rate ?? 6.8}
+        defaultPrice={NATIONAL.medianHomePrice}
+        forecastPct={forecast?.value ?? null}
+        forecastDate={forecast?.date ?? null}
+      />
     </div>
   );
 }

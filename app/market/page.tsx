@@ -87,6 +87,14 @@ export default async function MarketPage({
                 <div className="mt-4">
                   <Meter value={heat.score} leftLabel="Seller's market" midLabel="Balanced" rightLabel="Buyer's market" />
                 </div>
+                <p className="mt-4 text-sm text-[var(--text-2)]">
+                  <span className="font-medium text-[var(--text-1)]">What this means for you: </span>
+                  {heat.score >= 58
+                    ? "You likely have room to negotiate — consider offering below ask and requesting concessions (closing help, repairs)."
+                    : heat.score > 42
+                      ? "A balanced market — reasonable offers near asking price should compete without a bidding war."
+                      : "A competitive seller's market — expect to move fast, offer at or above ask, and keep contingencies tight."}
+                </p>
               </Card>
 
               <Card>

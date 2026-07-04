@@ -75,6 +75,32 @@ export async function nationalSeries(metricKey: string): Promise<SeriesPoint[]> 
   }, []);
 }
 
+export async function latestMetric(
+  geographyId: number,
+  metricKey: string,
+): Promise<{ date: string; value: number } | null> {
+  return safe(async () => {
+    const db = getDb();
+    const [row] = await db
+      .select({ date: metricSeries.periodDate, value: metricSeries.value })
+      .from(metricSeries)
+      .where(and(eq(metricSeries.geographyId, geographyId), eq(metricSeries.metricKey, metricKey)))
+      .orderBy(desc(metricSeries.periodDate))
+      .limit(1);
+    return row ?? null;
+  }, null);
+}
+
+/** Year-over-year change (fraction) for a metric, comparing latest to ~12 months prior. */
+export async function metricYoY(geographyId: number, metricKey: string): Promise<number | null> {
+  const history = await metricHistory(geographyId, metricKey);
+  if (history.length < 13) return null;
+  const latest = history[history.length - 1];
+  const prior = history[history.length - 13];
+  if (!prior || prior.value === 0) return null;
+  return (latest.value - prior.value) / prior.value;
+}
+
 export async function statesList() {
   return safe(async () => {
     const db = getDb();

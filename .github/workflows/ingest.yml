@@ -29,3 +29,5 @@ jobs:
         run: npm run ingest:fred
       - name: Ingest Zillow (ZHVI, ZORI)
         run: npm run ingest:zillow
+      - name: Ingest Redfin (market metrics)
+        run: npm run ingest:redfin

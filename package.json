@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push",
     "ingest:fred": "tsx scripts/ingest-fred.ts",
     "ingest:zillow": "tsx scripts/ingest-zillow.ts",
+    "ingest:redfin": "tsx scripts/ingest-redfin.ts",
     "seed:geo": "tsx scripts/seed-geographies.ts"
   },
   "dependencies": {

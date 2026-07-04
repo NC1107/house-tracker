@@ -19,6 +19,7 @@ const nav = [
   { href: "/explore", label: "Region Explorer" },
   { href: "/affordability", label: "Affordability" },
   { href: "/rent-vs-buy", label: "Rent vs. Buy" },
+  { href: "/market", label: "Market Heat" },
   { href: "/alerts", label: "Alerts" },
 ];
 

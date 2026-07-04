@@ -47,6 +47,26 @@ export const ZILLOW_FILES: ZillowFile[] = [
     dateColStart: 5,
     freq: "monthly",
   },
+  // Metro (MSA) level. Metros are seeded from the metadata in these files during ingestion
+  // (RegionID/RegionName/StateName), then metrics resolve by RegionID.
+  {
+    metricKey: "zhvi_all",
+    level: "metro",
+    url: `${HOST}/zhvi/Metro_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`,
+    regionCodeCol: 0, // RegionID
+    resolveBy: "code",
+    dateColStart: 5,
+    freq: "monthly",
+  },
+  {
+    metricKey: "zori",
+    level: "metro",
+    url: `${HOST}/zori/Metro_zori_uc_sfrcondomfr_sm_sa_month.csv`,
+    regionCodeCol: 0,
+    resolveBy: "code",
+    dateColStart: 5,
+    freq: "monthly",
+  },
 ];
 
 export async function downloadCsv(url: string): Promise<string> {

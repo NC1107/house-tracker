@@ -120,6 +120,18 @@ export async function latestMetricByState(
   }, []);
 }
 
+/** Metros (MSAs) whose primary state is the given state geography id, ordered by name. */
+export async function metrosForState(stateId: number) {
+  return safe(async () => {
+    const db = getDb();
+    return db
+      .select({ id: geographies.id, name: geographies.name })
+      .from(geographies)
+      .where(and(eq(geographies.level, "metro"), eq(geographies.parentId, stateId)))
+      .orderBy(geographies.name);
+  }, [] as { id: number; name: string }[]);
+}
+
 export async function statesList() {
   return safe(async () => {
     const db = getDb();

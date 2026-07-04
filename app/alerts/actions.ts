@@ -7,6 +7,7 @@ import { getDb } from "@/db/client";
 import { alertRules } from "@/db/schema";
 import { ensureOwnerId } from "@/lib/owner";
 import { sendEmail } from "@/lib/notify";
+import { fetchStateCities } from "@/lib/sources/redfin-live";
 
 function num(v: FormDataEntryValue | null, fallback: number): number {
   const n = Number(v);
@@ -37,6 +38,16 @@ export async function createAlert(formData: FormData) {
       basement: formData.get("basement") === "1",
     };
     if (!params.stateName) return;
+    // Resolve the city to a Redfin region id now, so the daily runner queries the city
+    // directly; unresolved names fall back to name-filtering the state results.
+    const cityName = String(formData.get("cityName") || "").trim();
+    if (cityName) {
+      const match = (await fetchStateCities(String(params.stateName))).find(
+        (c) => c.name.toLowerCase() === cityName.toLowerCase(),
+      );
+      params.cityName = match?.name ?? cityName;
+      if (match) params.cityRegionId = match.id;
+    }
   } else {
     return;
   }

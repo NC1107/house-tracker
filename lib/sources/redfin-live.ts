@@ -6,7 +6,6 @@
  * baked in below (Redfin region_type 4 = state).
  */
 import { parseCsv } from "@/lib/ingest";
-
 /** State name -> Redfin region_id (region_type=4). DC is listed by Redfin as "Columbia". */
 export const REDFIN_STATE_REGION_IDS: Record<string, number> = {
   Alabama: 1, Missouri: 2, Alaska: 3, Montana: 4, Arizona: 5, Nebraska: 6, Arkansas: 7,
@@ -23,6 +22,31 @@ export const REDFIN_STATE_REGION_IDS: Record<string, number> = {
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
+
+export type { CityRegion } from "@/lib/sources/redfin-cities";
+import { REDFIN_CITY_REGION_IDS, type CityRegion } from "@/lib/sources/redfin-cities";
+
+/** Parse /city/{id}/{ST}/{Slug} links out of a Redfin state-page HTML blob. */
+export function parseCityLinks(html: string): CityRegion[] {
+  const out = new Map<string, CityRegion>();
+  for (const m of html.matchAll(/\/city\/(\d+)\/[A-Z]{2}\/([A-Za-z0-9-]+)/g)) {
+    const name = m[2].replace(/-/g, " ");
+    // A city can appear under two ids (boundary variants); keep the first seen.
+    if (!out.has(name.toLowerCase())) out.set(name.toLowerCase(), { id: Number(m[1]), name });
+  }
+  return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Major cities (with Redfin region ids) for a state. Served from the baked map
+ * (scripts/generate-redfin-cities.mjs): Redfin's HTML pages sit behind an AWS WAF
+ * challenge that rejects Node's HTTP stack at runtime, and the ids are stable anyway.
+ * Covers the ~25 biggest markets per state; smaller towns fall back to client-side
+ * name filtering of the state search.
+ */
+export async function fetchStateCities(stateName: string): Promise<CityRegion[]> {
+  return REDFIN_CITY_REGION_IDS[stateName] ?? [];
+}
 
 export interface LiveListing {
   address: string;
@@ -68,6 +92,10 @@ export interface ListingFilters {
   basement?: boolean;
   /** Property types; defaults to houses + condos + townhouses + multi-family. */
   types?: ("house" | "condo" | "townhouse" | "multifamily")[];
+  /** Search a specific city (Redfin region id, region_type 6) instead of the whole state. */
+  cityRegionId?: number;
+  /** Fallback for cities without a known region id: filter results by city name. */
+  cityName?: string;
 }
 
 const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4" };
@@ -81,8 +109,8 @@ function searchParams(opts: { stateName: string; limit?: number } & ListingFilte
   const params = new URLSearchParams({
     al: "1",
     num_homes: String(Math.min(opts.limit ?? 350, 350)),
-    region_id: String(regionId),
-    region_type: "4",
+    region_id: String(opts.cityRegionId ?? regionId),
+    region_type: opts.cityRegionId ? "6" : "4",
     status: "9", // active + coming soon
     uipt: types.join(","),
     sf: "1,2,3,5,6,7",
@@ -129,8 +157,12 @@ export async function fetchLiveListings(opts: {
   const params = searchParams(opts);
   if (!params) return [];
   const fromJson = await fetchViaJson(params, opts);
-  if (fromJson.length > 0) return fromJson;
-  return fetchViaCsv(params, opts);
+  const results = fromJson.length > 0 ? fromJson : await fetchViaCsv(params, opts);
+  if (opts.cityName && !opts.cityRegionId) {
+    const want = opts.cityName.trim().toLowerCase();
+    return results.filter((l) => l.city.trim().toLowerCase() === want);
+  }
+  return results;
 }
 
 interface GisHome {

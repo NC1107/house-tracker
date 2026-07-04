@@ -15,7 +15,8 @@ function describe(rule: { type: string; params: Record<string, unknown> }, state
     return `${stateName(p.geographyId as number)} prices ${dir} by ≥ ${p.pctThreshold}% YoY`;
   }
   if (rule.type === "listing_match") {
-    return `New listing in ${p.stateName}: ${describeListingFilters(p)}`;
+    const where = p.cityName ? `${p.cityName}, ${p.stateName}` : p.stateName;
+    return `New listing in ${where}: ${describeListingFilters(p)}`;
   }
   return rule.type;
 }

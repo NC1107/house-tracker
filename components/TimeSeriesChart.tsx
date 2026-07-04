@@ -9,6 +9,7 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 import type { SeriesPoint } from "@/lib/types";
 import { CHART } from "@/lib/chartTheme";
@@ -18,6 +19,16 @@ import { CHART } from "@/lib/chartTheme";
  * client component can be rendered from a Server Component.
  */
 export type ValueFormat = "usd" | "percent" | "percent2" | "index" | "number" | "months" | "ratio";
+
+/**
+ * Horizontal marker line, e.g. an alert trigger ("Alert: below 5%") or a personal
+ * breakeven. Plain data (no functions) so Server Components can pass them.
+ */
+export interface RefLine {
+  value: number;
+  label: string;
+  color?: string;
+}
 
 const RANGES: { key: string; days: number }[] = [
   { key: "1W", days: 7 },
@@ -74,6 +85,7 @@ export default function TimeSeriesChart({
   format = "number",
   height = 240,
   ranges = true,
+  refLines = [],
 }: {
   data: SeriesPoint[];
   color?: string;
@@ -81,6 +93,8 @@ export default function TimeSeriesChart({
   height?: number;
   /** Show the time-range selector (default true). */
   ranges?: boolean;
+  /** Horizontal marker lines (alert triggers, personal targets). */
+  refLines?: RefLine[];
 }) {
   const gradId = useId().replace(/:/g, "");
 
@@ -179,7 +193,10 @@ export default function TimeSeriesChart({
             axisLine={false}
             width={52}
             tickFormatter={yAxis}
-            domain={["auto", "auto"]}
+            domain={[
+              (dataMin: number) => Math.min(dataMin, ...refLines.map((l) => l.value)),
+              (dataMax: number) => Math.max(dataMax, ...refLines.map((l) => l.value)),
+            ]}
           />
           <Tooltip
             formatter={(v: number) => [yTip(v), ""]}
@@ -187,6 +204,22 @@ export default function TimeSeriesChart({
             contentStyle={{ fontSize: 12, borderRadius: 10 }}
             cursor={{ stroke: CHART.axis, strokeWidth: 1, strokeDasharray: "3 3" }}
           />
+          {refLines.map((l) => (
+            <ReferenceLine
+              key={`${l.label}:${l.value}`}
+              y={l.value}
+              stroke={l.color ?? CHART.warning}
+              strokeDasharray="6 4"
+              strokeWidth={1.5}
+              ifOverflow="extendDomain"
+              label={{
+                value: l.label,
+                position: "insideBottomLeft",
+                fontSize: 11,
+                fill: l.color ?? CHART.warning,
+              }}
+            />
+          ))}
           <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>

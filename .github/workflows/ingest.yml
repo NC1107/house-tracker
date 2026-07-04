@@ -38,6 +38,8 @@ jobs:
         run: npm run ingest:zillow
       - name: Ingest Redfin (market metrics)
         run: npm run ingest:redfin
+      - name: Ingest Realtor.com (listing metrics)
+        run: npm run ingest:realtor
 
       - name: Evaluate alerts and email if any fired
         run: npm run alerts:run

@@ -1,5 +1,5 @@
 import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, statesWithMarketData, latestMetric, metricYoY, dbConfigured } from "@/lib/queries";
+import { statesList, statesWithMarketData, latestMetric, metricYoY, listAlertRules, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 import { Term } from "@/components/Term";
 
@@ -54,6 +54,13 @@ export default async function MarketPage({
     through = [mos, dom, drops, s2l].map((m) => m?.date).filter(Boolean).sort().at(-1) as string | undefined;
   }
 
+  // If the user set a buyer's-market alert for this state, mark its target on the meter.
+  const rules = await listAlertRules();
+  const heatRule = rules.find(
+    (r) => r.enabled && r.type === "market_heat" && Number(r.params.geographyId) === selectedId,
+  );
+  const targetScore = heatRule ? Number(heatRule.params.minScore) : undefined;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -97,7 +104,18 @@ export default async function MarketPage({
                   <span className="text-lg font-medium">{heat.label}</span>
                 </div>
                 <div className="mt-4">
-                  <Meter value={heat.score} leftLabel="Seller's market" midLabel="Balanced" rightLabel="Buyer's market" />
+                  <Meter
+                    value={heat.score}
+                    leftLabel="Seller's market"
+                    midLabel="Balanced"
+                    rightLabel="Buyer's market"
+                    target={Number.isFinite(targetScore as number) ? targetScore : undefined}
+                    targetLabel={
+                      Number.isFinite(targetScore as number)
+                        ? `Your alert fires at a score of ${targetScore}+`
+                        : undefined
+                    }
+                  />
                 </div>
                 <p className="mt-4 text-sm text-[var(--text-2)]">
                   <span className="font-medium text-[var(--text-1)]">What this means for you: </span>

@@ -40,8 +40,10 @@ npm test             # run the affordability validation suite
 ```bash
 npm run db:migrate
 npm run seed:geo      # nation + states + metric catalog
-npm run ingest:fred   # mortgage rates, Case-Shiller
-npm run ingest:zillow # ZHVI, ZORI
+npm run ingest:fred    # mortgage rates, Case-Shiller, housing starts (needs FRED_API_KEY)
+npm run ingest:zillow  # ZHVI, ZORI (no key)
+npm run ingest:redfin  # market heat: inventory, DOM, price cuts, sale-to-list (no key)
+npm run ingest:realtor # asking prices, new listings, pending ratio (no key)
 ```
 
 ## Data sources (all free)

@@ -1,10 +1,11 @@
 import Link from "next/link";
-import TimeSeriesChart from "@/components/TimeSeriesChart";
+import TimeSeriesChart, { type RefLine } from "@/components/TimeSeriesChart";
 import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/components/ui";
 import { ChartCard } from "@/components/ChartCard";
 import { Term } from "@/components/Term";
-import { latestMortgageRate, rateHistory, nationalSeries, dbConfigured } from "@/lib/queries";
+import { latestMortgageRate, rateHistory, nationalSeries, listAlertRules, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
+import { breakevenRateForPrice } from "@/lib/affordability";
 import { getProfile } from "@/lib/profile";
 import { paymentToBuySeries, priceToIncomeSeries } from "@/lib/trends";
 import { usd, pct } from "@/lib/format";
@@ -28,6 +29,39 @@ export default async function OverviewPage() {
   const currentRate = rate?.rate ?? 6.8;
   const profile = await getProfile();
   const snap = buyerSnapshot(currentRate, profile);
+
+  // Markers for the rate chart: alert triggers the user set, plus the personal breakeven
+  // (the highest rate at which the typical home is still comfortably affordable).
+  const alertRules = await listAlertRules();
+  const rateLines: RefLine[] = alertRules
+    .filter((r) => r.enabled && r.type === "rate_threshold" && Number.isFinite(Number(r.params.below)))
+    .map((r) => ({
+      value: Number(r.params.below),
+      label: `Your alert: below ${Number(r.params.below)}%`,
+      color: CHART.warning,
+    }));
+  const breakevenRate = breakevenRateForPrice({
+    homePrice: snap.medianHomePrice,
+    grossAnnualIncome: snap.medianIncome,
+    monthlyDebts: profile.monthlyDebts,
+    downPayment: { kind: "percent", percent: profile.downPct },
+  });
+  // Only draw the breakeven on the chart when it's near the plotted range; a far-out
+  // value (e.g. 1.3% when rates span 4-8%) would squash the chart, and the hero sentence
+  // already states the number.
+  const chartMin = rateChart.length ? Math.min(...rateChart.map((p) => p.value)) : null;
+  if (
+    breakevenRate !== null &&
+    breakevenRate < 15 &&
+    chartMin !== null &&
+    breakevenRate >= chartMin - 1
+  ) {
+    rateLines.push({
+      value: breakevenRate,
+      label: `Typical home affordable below ${breakevenRate.toFixed(1)}%`,
+      color: CHART.series3,
+    });
+  }
 
   // Derived buying-power trends (the "true cost" story buyers care about most).
   const paymentTrend = paymentToBuySeries(medianPrice, rates);
@@ -65,6 +99,12 @@ export default async function OverviewPage() {
                 </span>
               )}
             </p>
+            {!snap.medianCanAfford && breakevenRate !== null && breakevenRate < currentRate && (
+              <p className="mt-1 text-sm text-[var(--text-2)]">
+                A rate at or below <strong className="text-[var(--text-1)]">{breakevenRate.toFixed(1)}%</strong> would
+                put it comfortably in reach at this income. Set an alert to catch it.
+              </p>
+            )}
             <p className="mt-1 text-xs text-[var(--muted)]">
               &ldquo;Comfortable&rdquo; = ≤28% of income on housing. A lender may approve up to{" "}
               <strong className="text-[var(--text-2)]">{usd(snap.lenderMaxPrice)}</strong> (43% of income), the max rather than the comfortable choice.
@@ -151,7 +191,7 @@ export default async function OverviewPage() {
             <SectionTitle hint={dailyRate.length ? "Optimal Blue (daily) via FRED" : "Freddie Mac via FRED"}>
               30-year fixed mortgage rate
             </SectionTitle>
-            <TimeSeriesChart data={rateChart} format="percent2" color={CHART.series1} />
+            <TimeSeriesChart data={rateChart} format="percent2" color={CHART.series1} refLines={rateLines} />
           </Card>
           <Card>
             <SectionTitle hint="S&P / FRED">Case-Shiller US National Home Price Index</SectionTitle>

@@ -1,7 +1,7 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, metrosForState, metricHistory, dbConfigured } from "@/lib/queries";
+import { statesList, metrosForState, metricHistory, listAlertRules, dbConfigured } from "@/lib/queries";
 import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
 
@@ -25,10 +25,29 @@ export default async function ExplorePage({
   const regionId = selectedMetro ? selectedMetro.id : stateId;
   const regionName = selectedMetro ? selectedMetro.name : state?.name;
 
-  const [zhvi, zori] = regionId
-    ? await Promise.all([metricHistory(regionId, "zhvi_all"), metricHistory(regionId, "zori")])
-    : [[], []];
+  const [zhvi, zori, listPrice, newListings] = regionId
+    ? await Promise.all([
+        metricHistory(regionId, "zhvi_all"),
+        metricHistory(regionId, "zori"),
+        metricHistory(regionId, "median_list_price"),
+        metricHistory(regionId, "realtor_new_listings"),
+      ])
+    : [[], [], [], []];
   const yoy = yoyChangeSeries(zhvi);
+
+  // If the user set a price-move alert on this state, draw its trigger on the YoY chart.
+  const yoyLines: { value: number; label: string }[] = [];
+  if (regionId === stateId) {
+    const rules = await listAlertRules();
+    for (const r of rules) {
+      if (!r.enabled || r.type !== "price_move" || Number(r.params.geographyId) !== stateId) continue;
+      const t = Math.abs(Number(r.params.pctThreshold));
+      if (!Number.isFinite(t)) continue;
+      const direction = String(r.params.direction ?? "down");
+      if (direction !== "up") yoyLines.push({ value: -t, label: `Your alert: down ${t}%` });
+      if (direction !== "down") yoyLines.push({ value: t, label: `Your alert: up ${t}%` });
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -94,7 +113,7 @@ export default async function ExplorePage({
                 direction="lower"
                 whatFor="How fast prices are rising or falling. Falling/low growth means a cooling market and a better negotiating position."
               >
-                <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} />
+                <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} refLines={yoyLines} />
               </ChartCard>
               {zori.length > 0 && (
                 <ChartCard
@@ -104,6 +123,26 @@ export default async function ExplorePage({
                   whatFor="Typical asking rent, useful for a rent-vs-buy comparison in this area."
                 >
                   <TimeSeriesChart data={zori} format="usd" color={CHART.series3} />
+                </ChartCard>
+              )}
+              {listPrice.length > 0 && (
+                <ChartCard
+                  title={`${regionName}: median asking price`}
+                  source="Realtor.com"
+                  direction="lower"
+                  whatFor="What sellers are asking right now. Falling asking prices show sellers adjusting to buyers before sale prices move."
+                >
+                  <TimeSeriesChart data={listPrice} format="usd" color={CHART.series1} />
+                </ChartCard>
+              )}
+              {newListings.length > 0 && (
+                <ChartCard
+                  title={`${regionName}: new listings per month`}
+                  source="Realtor.com"
+                  direction="higher"
+                  whatFor="Fresh supply hitting the market. More new listings means more choice and less competition per home."
+                >
+                  <TimeSeriesChart data={newListings} format="number" color={CHART.series2} />
                 </ChartCard>
               )}
             </div>

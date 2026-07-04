@@ -27,10 +27,14 @@ export const METRIC_CATALOG: MetricDef[] = [
   // Market heat
   { metricKey: "days_on_market", label: "Median Days on Market", unit: "days", category: "market", source: "redfin" },
   { metricKey: "inventory", label: "Active Inventory", unit: "count", category: "market", source: "redfin" },
-  { metricKey: "new_listings", label: "New Listings", unit: "count", category: "market", source: "realtor" },
+  { metricKey: "new_listings", label: "New Listings", unit: "count", category: "market", source: "redfin" },
+  { metricKey: "realtor_new_listings", label: "New Listings (Realtor.com)", unit: "count", category: "market", source: "realtor", description: "Own key so Redfin's new-listings series (different methodology) is never mixed into it." },
   { metricKey: "months_of_supply", label: "Months of Supply", unit: "months", category: "market", source: "redfin" },
   { metricKey: "sale_to_list", label: "Sale-to-List Ratio", unit: "ratio", category: "market", source: "redfin" },
   { metricKey: "price_drops_share", label: "Share of Listings with Price Drops", unit: "percent", category: "market", source: "redfin" },
+  { metricKey: "pending_ratio", label: "Pending-to-Active Ratio", unit: "ratio", category: "market", source: "realtor", description: "Pending sales relative to active listings; higher means demand is absorbing supply faster." },
+  { metricKey: "housing_starts", label: "Housing Starts", unit: "count", category: "market", source: "fred", description: "HOUST, new privately-owned housing units started (SAAR, thousands)." },
+  { metricKey: "building_permits", label: "Building Permits", unit: "count", category: "market", source: "fred", description: "PERMIT, new privately-owned housing units authorized (SAAR, thousands)." },
 
   // Rates
   { metricKey: "mortgage_30yr", label: "30-Year Fixed Mortgage Rate", unit: "percent", category: "rate", source: "fred" },
@@ -61,4 +65,6 @@ export const FRED_SERIES: { seriesId: string; metricKey: string; freq: import("@
   { seriesId: "CPIAUCSL", metricKey: "cpi", freq: "monthly" },
   { seriesId: "MSACSR", metricKey: "months_supply_new", freq: "monthly" },
   { seriesId: "OBMMIC30YF", metricKey: "mortgage_30yr_daily", freq: "daily" },
+  { seriesId: "HOUST", metricKey: "housing_starts", freq: "monthly" },
+  { seriesId: "PERMIT", metricKey: "building_permits", freq: "monthly" },
 ];

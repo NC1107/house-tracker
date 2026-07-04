@@ -15,7 +15,7 @@ import { CHART } from "@/lib/chartTheme";
 export const dynamic = "force-dynamic";
 
 export default async function TrendsPage() {
-  const [rates, treasury, medianPrice, income, caseShiller, cpi, supply] = await Promise.all([
+  const [rates, treasury, medianPrice, income, caseShiller, cpi, supply, starts] = await Promise.all([
     rateHistory("30yr"),
     nationalSeries("treasury_10yr"),
     nationalSeries("median_sale_price_us"),
@@ -23,6 +23,7 @@ export default async function TrendsPage() {
     nationalSeries("case_shiller_national"),
     nationalSeries("cpi"),
     nationalSeries("months_supply_new"),
+    nationalSeries("housing_starts"),
   ]);
 
   const payment = paymentToBuySeries(medianPrice, rates);
@@ -107,6 +108,17 @@ export default async function TrendsPage() {
           >
             <TimeSeriesChart data={supply} format="months" color={CHART.series1} />
           </ChartCard>
+
+          {starts.length > 0 && (
+            <ChartCard
+              title="New construction starts"
+              source="FRED HOUST"
+              direction="higher"
+              whatFor="Housing units started per year (seasonally adjusted, thousands). A stronger pipeline of new homes eases prices over the following years."
+            >
+              <TimeSeriesChart data={starts} format="number" color={CHART.series3} />
+            </ChartCard>
+          )}
 
           <ChartCard
             title="Mortgage rate vs. 10-year Treasury (spread)"

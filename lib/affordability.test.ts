@@ -7,6 +7,7 @@ import {
   computeDti,
   maxAffordablePrice,
   requiredIncomeForPrice,
+  breakevenRateForPrice,
   cashToClose,
   GUIDELINES,
   CONFORMING_LOAN_LIMIT_1UNIT_2025,
@@ -230,5 +231,30 @@ describe("required income <-> max price round trip", () => {
     // Should be within ~1% (bisection + integer flooring of price).
     expect(req.requiredAnnualIncome).toBeGreaterThan(income * 0.985);
     expect(req.requiredAnnualIncome).toBeLessThan(income * 1.015);
+  });
+});
+
+describe("breakeven rate for a target price", () => {
+  const base = {
+    grossAnnualIncome: 80_610,
+    monthlyDebts: 0,
+    downPayment: { kind: "percent", percent: 0.15 } as const,
+  };
+
+  it("returns the highest rate that still affords the price", () => {
+    const rate = breakevenRateForPrice({ ...base, homePrice: 300_000 });
+    expect(rate).not.toBeNull();
+    const affordsAtBreakeven = maxAffordablePrice({ ...base, annualRatePct: rate! }).maxHomePrice;
+    const affordsAbove = maxAffordablePrice({ ...base, annualRatePct: rate! + 0.5 }).maxHomePrice;
+    expect(affordsAtBreakeven).toBeGreaterThanOrEqual(300_000 * 0.995);
+    expect(affordsAbove).toBeLessThan(300_000);
+  });
+
+  it("returns null when the price is out of reach even at the floor rate", () => {
+    expect(breakevenRateForPrice({ ...base, homePrice: 2_000_000 })).toBeNull();
+  });
+
+  it("returns the ceiling when affordable across the whole range", () => {
+    expect(breakevenRateForPrice({ ...base, homePrice: 50_000 })).toBe(15);
   });
 });

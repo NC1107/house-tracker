@@ -60,12 +60,35 @@ export function Stat({
   );
 }
 
-/** Horizontal meter with a marker at `value` (0..100) over a red→amber→green track. */
-export function Meter({ value, leftLabel, midLabel, rightLabel }: { value: number; leftLabel: string; midLabel: string; rightLabel: string }) {
+/** Horizontal meter with a marker at `value` (0..100) over a red-amber-green track. */
+export function Meter({
+  value,
+  leftLabel,
+  midLabel,
+  rightLabel,
+  target,
+  targetLabel,
+}: {
+  value: number;
+  leftLabel: string;
+  midLabel: string;
+  rightLabel: string;
+  /** Optional goal marker (0..100), e.g. an alert's trigger score. */
+  target?: number;
+  targetLabel?: string;
+}) {
   const pct = Math.max(0, Math.min(100, value));
+  const targetPct = target === undefined ? undefined : Math.max(0, Math.min(100, target));
   return (
     <div>
       <div className="relative h-2.5 w-full rounded-full" style={{ background: "linear-gradient(90deg,#d03b3b,#f59e0b,#0ca30c)" }}>
+        {targetPct !== undefined && (
+          <div
+            className="absolute top-1/2 h-5 w-0.5 -translate-y-1/2 bg-[var(--text-2)]"
+            style={{ left: `calc(${targetPct}% - 1px)` }}
+            title={targetLabel}
+          />
+        )}
         <div
           className="absolute top-1/2 h-4 w-1.5 -translate-y-1/2 rounded-full bg-[var(--text-1)] ring-2 ring-[var(--surface)]"
           style={{ left: `calc(${pct}% - 3px)` }}
@@ -76,6 +99,9 @@ export function Meter({ value, leftLabel, midLabel, rightLabel }: { value: numbe
         <span>{midLabel}</span>
         <span>{rightLabel}</span>
       </div>
+      {targetPct !== undefined && targetLabel && (
+        <p className="mt-1 text-[11px] text-[var(--muted)]">{targetLabel}</p>
+      )}
     </div>
   );
 }

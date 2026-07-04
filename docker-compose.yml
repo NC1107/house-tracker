@@ -10,6 +10,7 @@
 #   docker compose --profile tools run --rm tools npm run ingest:fred
 #   docker compose --profile tools run --rm tools npm run ingest:zillow
 #   docker compose --profile tools run --rm tools npm run ingest:redfin
+#   docker compose --profile tools run --rm tools npm run ingest:realtor
 
 services:
   db:

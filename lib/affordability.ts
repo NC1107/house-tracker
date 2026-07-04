@@ -540,3 +540,41 @@ export function requiredIncomeForPrice(inputs: {
     bindingRatio: frontIncome > backIncome ? "front" : "back",
   };
 }
+
+/**
+ * The highest mortgage rate at which the borrower still qualifies for `homePrice` under
+ * the guideline (their "breakeven rate"). Affordability falls as the rate rises, so we
+ * bisect on rate. Returns null when the price is out of reach even at `minRatePct`, and
+ * `maxRatePct` when they qualify across the whole range. Powers the "rates at or below
+ * X% put this home in reach" line on the rate charts.
+ */
+export function breakevenRateForPrice(inputs: {
+  homePrice: number;
+  grossAnnualIncome: number;
+  monthlyDebts: number;
+  downPayment: DownPaymentMode;
+  guideline?: Guideline;
+  minRatePct?: number;
+  maxRatePct?: number;
+}): number | null {
+  const { homePrice, grossAnnualIncome, monthlyDebts, downPayment } = inputs;
+  const guideline = inputs.guideline ?? GUIDELINES.conventional_classic;
+  const minRatePct = inputs.minRatePct ?? 0.5;
+  const maxRatePct = inputs.maxRatePct ?? 15;
+
+  const affordsAt = (annualRatePct: number): boolean =>
+    maxAffordablePrice({ grossAnnualIncome, monthlyDebts, downPayment, annualRatePct, guideline })
+      .maxHomePrice >= homePrice;
+
+  if (!affordsAt(minRatePct)) return null;
+  if (affordsAt(maxRatePct)) return maxRatePct;
+
+  let lo = minRatePct; // affords
+  let hi = maxRatePct; // does not afford
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (affordsAt(mid)) lo = mid;
+    else hi = mid;
+  }
+  return Math.round(lo * 100) / 100;
+}

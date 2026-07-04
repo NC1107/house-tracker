@@ -69,6 +69,13 @@ export const ZILLOW_FILES: ZillowFile[] = [
   },
 ];
 
+/**
+ * ZHVF: Zillow's home-value forecast. Unlike the wide history files, each row carries a
+ * BaseDate plus a few forecast-horizon columns (month/quarter/year ahead, % growth); the
+ * last column is the 12-month forecast we store as `zhvf_forecast`.
+ */
+export const ZILLOW_FORECAST_URL = `${HOST}/zhvf_growth/Metro_zhvf_growth_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv`;
+
 export async function downloadCsv(url: string): Promise<string> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Zillow download failed: ${url} -> ${res.status}`);

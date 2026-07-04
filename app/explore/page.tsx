@@ -1,7 +1,7 @@
 import TimeSeriesChart from "@/components/TimeSeriesChart";
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, metrosForState, metricHistory, listAlertRules, dbConfigured } from "@/lib/queries";
+import { statesList, metrosForState, metricHistory, latestMetric, listAlertRules, dbConfigured } from "@/lib/queries";
 import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
 
@@ -25,14 +25,16 @@ export default async function ExplorePage({
   const regionId = selectedMetro ? selectedMetro.id : stateId;
   const regionName = selectedMetro ? selectedMetro.name : state?.name;
 
-  const [zhvi, zori, listPrice, newListings] = regionId
+  const [zhvi, zori, listPrice, newListings, fhfa] = regionId
     ? await Promise.all([
         metricHistory(regionId, "zhvi_all"),
         metricHistory(regionId, "zori"),
         metricHistory(regionId, "median_list_price"),
         metricHistory(regionId, "realtor_new_listings"),
+        metricHistory(regionId, "fhfa_hpi"),
       ])
-    : [[], [], [], []];
+    : [[], [], [], [], []];
+  const forecast = regionId ? await latestMetric(regionId, "zhvf_forecast") : null;
   const yoy = yoyChangeSeries(zhvi);
 
   // If the user set a price-move alert on this state, draw its trigger on the YoY chart.
@@ -44,8 +46,8 @@ export default async function ExplorePage({
       const t = Math.abs(Number(r.params.pctThreshold));
       if (!Number.isFinite(t)) continue;
       const direction = String(r.params.direction ?? "down");
-      if (direction !== "up") yoyLines.push({ value: -t, label: `Your alert: down ${t}%` });
-      if (direction !== "down") yoyLines.push({ value: t, label: `Your alert: up ${t}%` });
+      if (direction !== "up") yoyLines.push({ value: -t, label: `-${t}%` });
+      if (direction !== "down") yoyLines.push({ value: t, label: `+${t}%` });
     }
   }
 
@@ -91,6 +93,17 @@ export default async function ExplorePage({
               <span className="pb-2 text-xs text-[var(--muted)]">Run metro ingestion to drill into metros.</span>
             )}
           </form>
+
+          {forecast && (
+            <p className="text-sm text-[var(--text-2)]">
+              Zillow expects {regionName} home values to move{" "}
+              <strong style={{ color: forecast.value <= 0 ? "var(--good-ink)" : "var(--text-1)" }}>
+                {forecast.value >= 0 ? "+" : ""}
+                {forecast.value.toFixed(1)}%
+              </strong>{" "}
+              over the next 12 months (forecast as of {forecast.date}).
+            </p>
+          )}
 
           {zhvi.length === 0 ? (
             <EmptyNote>
@@ -143,6 +156,16 @@ export default async function ExplorePage({
                   whatFor="Fresh supply hitting the market. More new listings means more choice and less competition per home."
                 >
                   <TimeSeriesChart data={newListings} format="number" color={CHART.series2} />
+                </ChartCard>
+              )}
+              {fhfa.length > 0 && (
+                <ChartCard
+                  title={`${regionName}: long-run price index (since 1975)`}
+                  source="FHFA HPI"
+                  direction="lower"
+                  whatFor="Government price index across five decades. Puts today's prices in the longest possible context, including past booms and busts."
+                >
+                  <TimeSeriesChart data={fhfa} format="index" color={CHART.series3} />
                 </ChartCard>
               )}
             </div>

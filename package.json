@@ -17,6 +17,9 @@
     "ingest:zillow": "tsx scripts/ingest-zillow.ts",
     "ingest:redfin": "tsx scripts/ingest-redfin.ts",
     "ingest:realtor": "tsx scripts/ingest-realtor.ts",
+    "ingest:fhfa": "tsx scripts/ingest-fhfa.ts",
+    "ingest:census": "tsx scripts/ingest-census.ts",
+    "ingest:redfin-metro": "tsx scripts/ingest-redfin-metro.ts",
     "alerts:run": "tsx scripts/run-alerts.ts",
     "seed:geo": "tsx scripts/seed-geographies.ts"
   },

@@ -156,6 +156,22 @@ export async function statesList() {
   }, [] as { id: number; code: string; name: string; stateCode: string | null }[]);
 }
 
+/** Metros of a state that have at least one Redfin market-heat metric ingested. */
+export async function metrosWithMarketData(stateId: number): Promise<{ id: number; name: string }[]> {
+  return safe(async () => {
+    const db = getDb();
+    const rows = await db.execute(sql`
+      select distinct g.id as id, g.name as name
+      from geographies g
+      join metric_series ms on ms.geography_id = g.id
+      where g.level = 'metro' and g.parent_id = ${stateId}
+        and ms.metric_key in ('months_of_supply', 'days_on_market', 'price_drops_share', 'sale_to_list', 'inventory')
+      order by g.name
+    `);
+    return rows as unknown as { id: number; name: string }[];
+  }, [] as { id: number; name: string }[]);
+}
+
 /** State geography ids that have at least one Redfin market-heat metric ingested. */
 export async function statesWithMarketData(): Promise<Set<number>> {
   return safe(async () => {

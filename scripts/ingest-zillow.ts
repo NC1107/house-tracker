@@ -9,8 +9,8 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { geographies } from "@/db/schema";
-import { ZILLOW_FILES, downloadCsv } from "@/lib/sources/zillow";
-import { parseCsv, wideToLong, upsertSeries, loadGeoIndex, loadGeoIndexByName } from "@/lib/ingest";
+import { ZILLOW_FILES, ZILLOW_FORECAST_URL, downloadCsv } from "@/lib/sources/zillow";
+import { parseCsv, wideToLong, upsertSeries, loadGeoIndex, loadGeoIndexByName, type SeriesRow } from "@/lib/ingest";
 
 /**
  * Seed metro (MSA) geographies from a Zillow metro file's metadata rows
@@ -87,8 +87,57 @@ async function main() {
     const written = await upsertSeries(long);
     console.log(`  ${file.metricKey}/${file.level}: ${written} observations upserted`);
   }
+  await ingestForecast();
   console.log("Zillow ingestion complete.");
   process.exit(0);
+}
+
+/**
+ * 12-month home-value forecast (% growth) for metros + the nation, stored at BaseDate so
+ * each month's published forecast becomes one observation.
+ */
+async function ingestForecast() {
+  console.log("Downloading zhvf_forecast @ metro ...");
+  let text: string;
+  try {
+    text = await downloadCsv(ZILLOW_FORECAST_URL);
+  } catch (e) {
+    console.warn(`  skipped zhvf_forecast: ${(e as Error).message}`);
+    return;
+  }
+  const [header, ...dataRows] = parseCsv(text);
+  if (!header) return;
+  const col = new Map(header.map((h, i) => [h.trim().toLowerCase(), i]));
+  const idCol = col.get("regionid");
+  const typeCol = col.get("regiontype");
+  const baseCol = col.get("basedate");
+  if (idCol === undefined || typeCol === undefined || baseCol === undefined) {
+    console.warn("  zhvf file missing RegionID/RegionType/BaseDate, skipping");
+    return;
+  }
+  const yearAheadCol = header.length - 1; // horizons are ordered; last = 12 months out
+
+  const db = getDb();
+  const metroIndex = await loadGeoIndex("metro");
+  const [nation] = await db
+    .select({ id: geographies.id })
+    .from(geographies)
+    .where(sql`${geographies.level} = 'nation'`)
+    .limit(1);
+
+  const out: SeriesRow[] = [];
+  for (const row of dataRows) {
+    const type = (row[typeCol] ?? "").trim().toLowerCase();
+    const geographyId = type === "country" ? nation?.id : type === "msa" ? metroIndex.get(row[idCol]) : undefined;
+    if (geographyId === undefined) continue;
+    const periodDate = (row[baseCol] ?? "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(periodDate)) continue;
+    const value = Number(row[yearAheadCol]);
+    if (!Number.isFinite(value)) continue;
+    out.push({ geographyId, metricKey: "zhvf_forecast", periodDate, freq: "monthly", value });
+  }
+  const written = await upsertSeries(out);
+  console.log(`  zhvf_forecast: ${written} observations upserted`);
 }
 
 main().catch((e) => {

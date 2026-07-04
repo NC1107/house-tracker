@@ -37,7 +37,7 @@ export default async function OverviewPage() {
     .filter((r) => r.enabled && r.type === "rate_threshold" && Number.isFinite(Number(r.params.below)))
     .map((r) => ({
       value: Number(r.params.below),
-      label: `Your alert: below ${Number(r.params.below)}%`,
+      label: `${Number(r.params.below)}%`,
       color: CHART.warning,
     }));
   const breakevenRate = breakevenRateForPrice({
@@ -58,7 +58,7 @@ export default async function OverviewPage() {
   ) {
     rateLines.push({
       value: breakevenRate,
-      label: `Typical home affordable below ${breakevenRate.toFixed(1)}%`,
+      label: `${breakevenRate.toFixed(1)}%`,
       color: CHART.series3,
     });
   }

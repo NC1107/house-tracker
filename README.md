@@ -44,6 +44,9 @@ npm run ingest:fred    # mortgage rates, Case-Shiller, housing starts (needs FRE
 npm run ingest:zillow  # ZHVI, ZORI (no key)
 npm run ingest:redfin  # market heat: inventory, DOM, price cuts, sale-to-list (no key)
 npm run ingest:realtor # asking prices, new listings, pending ratio (no key)
+npm run ingest:redfin-metro # metro-level market heat (no key, ~110MB stream)
+npm run ingest:fhfa    # FHFA state price index since 1975 (no key)
+npm run ingest:census  # state median income/home value (needs CENSUS_API_KEY)
 ```
 
 ## Data sources (all free)

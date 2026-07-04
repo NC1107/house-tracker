@@ -1,5 +1,5 @@
 import { PageHeader, Card, SectionTitle, Meter, Bar, EmptyNote, Freshness } from "@/components/ui";
-import { statesList, statesWithMarketData, latestMetric, metricYoY, listAlertRules, dbConfigured } from "@/lib/queries";
+import { statesList, statesWithMarketData, metrosWithMarketData, latestMetric, metricYoY, listAlertRules, dbConfigured } from "@/lib/queries";
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 import { Term } from "@/components/Term";
 
@@ -22,9 +22,9 @@ function scoreColor(score: number): string {
 export default async function MarketPage({
   searchParams,
 }: {
-  searchParams: Promise<{ geo?: string }>;
+  searchParams: Promise<{ geo?: string; metro?: string }>;
 }) {
-  const { geo } = await searchParams;
+  const { geo, metro } = await searchParams;
   const [allStates, withData] = await Promise.all([statesList(), statesWithMarketData()]);
   // Only offer states that actually have Redfin metrics, so nobody lands on an empty view.
   const states = withData.size > 0 ? allStates.filter((s) => withData.has(s.id)) : allStates;
@@ -33,15 +33,22 @@ export default async function MarketPage({
   const selected = states.find((s) => s.id === selectedId);
   const marketDataLoaded = withData.size > 0;
 
+  // Metro drilldown: only metros that actually have Redfin metro metrics ingested.
+  const metros = selectedId ? await metrosWithMarketData(selectedId) : [];
+  const metroId = metro ? Number(metro) : undefined;
+  const selectedMetro = metros.find((m) => m.id === metroId);
+  const regionId = selectedMetro ? selectedMetro.id : selectedId;
+  const regionName = selectedMetro ? selectedMetro.name : selected?.name;
+
   let heat = null as ReturnType<typeof marketHeat> | null;
   let through: string | undefined;
-  if (selectedId) {
+  if (regionId) {
     const [mos, dom, drops, s2l, invTrend] = await Promise.all([
-      latestMetric(selectedId, "months_of_supply"),
-      latestMetric(selectedId, "days_on_market"),
-      latestMetric(selectedId, "price_drops_share"),
-      latestMetric(selectedId, "sale_to_list"),
-      metricYoY(selectedId, "inventory"),
+      latestMetric(regionId, "months_of_supply"),
+      latestMetric(regionId, "days_on_market"),
+      latestMetric(regionId, "price_drops_share"),
+      latestMetric(regionId, "sale_to_list"),
+      metricYoY(regionId, "inventory"),
     ]);
     const inputs: MarketInputs = {
       monthsOfSupply: mos?.value,
@@ -57,7 +64,7 @@ export default async function MarketPage({
   // If the user set a buyer's-market alert for this state, mark its target on the meter.
   const rules = await listAlertRules();
   const heatRule = rules.find(
-    (r) => r.enabled && r.type === "market_heat" && Number(r.params.geographyId) === selectedId,
+    (r) => r.enabled && r.type === "market_heat" && Number(r.params.geographyId) === regionId,
   );
   const targetScore = heatRule ? Number(heatRule.params.minScore) : undefined;
 
@@ -90,13 +97,26 @@ export default async function MarketPage({
                 </option>
               ))}
             </select>
+            {metros.length > 0 && (
+              <>
+                <label className="label mb-0">Metro</label>
+                <select name="metro" defaultValue={metroId ? String(metroId) : ""} className="input max-w-xs">
+                  <option value="">Whole state</option>
+                  {metros.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <button className="btn">View</button>
           </form>
 
           {heat && heat.score !== null ? (
             <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
               <Card>
-                <p className="text-sm text-[var(--text-2)]">{selected?.name}</p>
+                <p className="text-sm text-[var(--text-2)]">{regionName}</p>
                 <div className="mt-1 flex items-baseline gap-3">
                   <span className="text-6xl font-bold tabular-nums" style={{ color: scoreColor(heat.score) }}>
                     {heat.score}
@@ -110,11 +130,7 @@ export default async function MarketPage({
                     midLabel="Balanced"
                     rightLabel="Buyer's market"
                     target={Number.isFinite(targetScore as number) ? targetScore : undefined}
-                    targetLabel={
-                      Number.isFinite(targetScore as number)
-                        ? `Your alert fires at a score of ${targetScore}+`
-                        : undefined
-                    }
+                    targetLabel={Number.isFinite(targetScore as number) ? `Alert at ${targetScore}` : undefined}
                   />
                 </div>
                 <p className="mt-4 text-sm text-[var(--text-2)]">
@@ -146,7 +162,7 @@ export default async function MarketPage({
             </div>
           ) : (
             <EmptyNote>
-              No market metrics for {selected?.name} yet. Run <code>npm run ingest:redfin</code> to
+              No market metrics for {regionName} yet. Run <code>npm run ingest:redfin</code> to
               populate inventory, days-on-market, price cuts, and sale-to-list.
             </EmptyNote>
           )}

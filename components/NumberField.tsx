@@ -48,8 +48,9 @@ export default function NumberField({
           let raw = e.target.value.replace(/[^0-9.]/g, "");
           // Collapse a leading zero so "090000" can never appear.
           if (/^0\d/.test(raw)) raw = raw.replace(/^0+/, "");
-          setText(raw);
           const n = raw === "" || raw === "." ? 0 : Number(raw);
+          // Re-insert thousands separators as they type (integers only; decimals left alone).
+          setText(raw.includes(".") ? raw : raw === "" ? "" : Number(raw).toLocaleString("en-US"));
           if (Number.isFinite(n)) onChange(clamp(n, min, max));
         }}
         onBlur={() => setText(display(clamp(parse(text), min, max)))}
@@ -62,10 +63,12 @@ export default function NumberField({
 }
 
 function display(n: number) {
-  return Number.isFinite(n) ? String(n) : "";
+  if (!Number.isFinite(n)) return "";
+  return Number.isInteger(n) ? n.toLocaleString("en-US") : String(n);
 }
 function parse(t: string) {
-  const n = t === "" || t === "." ? 0 : Number(t);
+  const raw = t.replace(/,/g, "");
+  const n = raw === "" || raw === "." ? 0 : Number(raw);
   return Number.isFinite(n) ? n : 0;
 }
 function clamp(n: number, min?: number, max?: number) {

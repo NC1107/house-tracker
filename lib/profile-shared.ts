@@ -8,6 +8,10 @@ export interface BuyerProfile {
   /** Where they're looking to buy; drives defaults on Deals/Market/Explore. */
   homeState: string;
   homeCities: string[];
+  /** Work location for the distance-to-work feature (geocoded once at save time). */
+  workAddress: string;
+  workLat: number | null;
+  workLng: number | null;
 }
 
 export const DEFAULT_PROFILE: BuyerProfile = {
@@ -16,6 +20,9 @@ export const DEFAULT_PROFILE: BuyerProfile = {
   monthlyDebts: 0,
   homeState: "",
   homeCities: [],
+  workAddress: "",
+  workLat: null,
+  workLng: null,
 };
 
 export const PROFILE_COOKIE = "ht_profile";

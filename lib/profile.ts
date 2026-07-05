@@ -27,6 +27,9 @@ export async function getProfile(): Promise<BuyerProfile & { isCustom: boolean }
       homeCities: Array.isArray(p.homeCities)
         ? p.homeCities.filter((c: unknown) => typeof c === "string").slice(0, 10)
         : [],
+      workAddress: typeof p.workAddress === "string" ? p.workAddress.slice(0, 120) : "",
+      workLat: Number.isFinite(Number(p.workLat)) && p.workLat !== null && p.workLat !== "" ? Number(p.workLat) : null,
+      workLng: Number.isFinite(Number(p.workLng)) && p.workLng !== null && p.workLng !== "" ? Number(p.workLng) : null,
       isCustom: true,
     };
   } catch {

@@ -16,3 +16,15 @@ describe("quarterEndDate", () => {
     expect(quarterEndDate(1800, 1)).toBeNull();
   });
 });
+
+import { haversineMiles } from "@/lib/geo/distance";
+
+describe("haversineMiles", () => {
+  it("matches known distances", () => {
+    // Annapolis MD to Baltimore MD is ~25 miles as the crow flies.
+    const d = haversineMiles(38.9784, -76.4922, 39.2904, -76.6122);
+    expect(d).toBeGreaterThan(20);
+    expect(d).toBeLessThan(30);
+    expect(haversineMiles(40, -76, 40, -76)).toBe(0);
+  });
+});

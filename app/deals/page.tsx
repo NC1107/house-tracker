@@ -3,6 +3,11 @@ import { PageHeader, EmptyNote } from "@/components/ui";
 import { statesList, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { fetchLiveListings, fetchStateCities, REDFIN_STATE_REGION_IDS } from "@/lib/sources/redfin-live";
 import AutoSubmitSelect from "@/components/AutoSubmitSelect";
+import MoneyInput from "@/components/MoneyInput";
+import RememberSearch from "@/components/RememberSearch";
+import MultiSelectDropdown from "@/components/MultiSelectDropdown";
+import { haversineMiles } from "@/lib/geo/distance";
+import type { LiveListing } from "@/lib/sources/redfin-live";
 import { maxAffordablePrice, GUIDELINES } from "@/lib/affordability";
 import { getProfile } from "@/lib/profile";
 import { usd } from "@/lib/format";
@@ -27,6 +32,8 @@ export default async function DealsPage({
     type?: string | string[];
     lt?: string | string[];
     city?: string;
+    kw?: string;
+    maxmiles?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -57,12 +64,19 @@ export default async function DealsPage({
   // City scoping: known big cities search Redfin's city region directly; anything else
   // typed falls back to filtering the state results by city name.
   const cities = selectedName ? await fetchStateCities(selectedName) : [];
-  // Default the city to the profile's first saved city when landing without params.
-  const defaultCity = sp.city === undefined && selectedName === profile.homeState ? (profile.homeCities[0] ?? "") : "";
+  // Multi-city: comma-separated input; defaults to ALL the profile's saved cities.
+  const defaultCity =
+    sp.city === undefined && selectedName === profile.homeState ? profile.homeCities.join(", ") : "";
   const cityQuery = (sp.city ?? defaultCity).trim();
-  const cityMatch = cityQuery
-    ? cities.find((c) => c.name.toLowerCase() === cityQuery.toLowerCase())
-    : undefined;
+  const cityNames = cityQuery
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  const cityTargets = cityNames.map((name) => ({
+    name,
+    match: cities.find((c) => c.name.toLowerCase() === name.toLowerCase()),
+  }));
 
   const minBeds = Math.max(0, Number(beds) || 0);
   const minBaths = Math.max(0, Number(baths) || 0);
@@ -85,25 +99,68 @@ export default async function DealsPage({
     (LT_KEYS as readonly string[]).includes(t),
   );
 
-  const listings = selectedName
-    ? await fetchLiveListings({
-        stateName: selectedName,
-        maxPrice: budget,
-        minPrice: minPrice || undefined,
-        minBeds: minBeds || undefined,
-        minBaths: minBaths || undefined,
-        minStories: minStories || undefined,
-        minSqft: minSqft || undefined,
-        minYearBuilt: yearMin || undefined,
-        maxYearBuilt: yearMax || undefined,
-        minLotSqft: lotAcres ? Math.round(lotAcres * 43_560) : undefined,
-        basement: wantBasement,
-        types: pickedTypes.length ? pickedTypes : undefined,
-        listingTypes: pickedListingTypes.length ? pickedListingTypes : undefined,
-        cityRegionId: cityMatch?.id,
-        cityName: cityMatch ? undefined : cityQuery || undefined,
+  const keyword = (sp.kw ?? "").trim();
+  const maxMiles = Math.max(0, Number(sp.maxmiles) || 0);
+  const hasWork = profile.workLat !== null && profile.workLng !== null;
+
+  const baseFilters = {
+    stateName: selectedName ?? "",
+    maxPrice: budget,
+    minPrice: minPrice || undefined,
+    minBeds: minBeds || undefined,
+    minBaths: minBaths || undefined,
+    minStories: minStories || undefined,
+    minSqft: minSqft || undefined,
+    minYearBuilt: yearMin || undefined,
+    maxYearBuilt: yearMax || undefined,
+    minLotSqft: lotAcres ? Math.round(lotAcres * 43_560) : undefined,
+    basement: wantBasement,
+    types: pickedTypes.length ? pickedTypes : undefined,
+    listingTypes: pickedListingTypes.length ? pickedListingTypes : undefined,
+    keyword: keyword || undefined,
+  };
+
+  // One query per selected city (region-scoped when known, name-filtered otherwise),
+  // merged, de-duplicated, and re-sorted by price; no cities = whole state.
+  let listings: (LiveListing & { milesToWork?: number | null })[] = [];
+  if (selectedName) {
+    const perCity =
+      cityTargets.length > 0
+        ? await Promise.all(
+            cityTargets.map((t) =>
+              fetchLiveListings({
+                ...baseFilters,
+                cityRegionId: t.match?.id,
+                cityName: t.match ? undefined : t.name,
+              }),
+            ),
+          )
+        : [await fetchLiveListings(baseFilters)];
+    const seen = new Set<string>();
+    listings = perCity
+      .flat()
+      .filter((l) => {
+        const key = l.mls || l.url;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
       })
-    : [];
+      .sort((a, b) => a.price - b.price);
+  }
+
+  // Distance to work: annotate and optionally filter (straight-line miles).
+  if (hasWork) {
+    listings = listings.map((l) => ({
+      ...l,
+      milesToWork:
+        l.lat !== null && l.lng !== null
+          ? haversineMiles(l.lat, l.lng, profile.workLat!, profile.workLng!)
+          : null,
+    }));
+    if (maxMiles > 0) {
+      listings = listings.filter((l) => l.milesToWork != null && l.milesToWork <= maxMiles);
+    }
+  }
   const filterSummary = [
     minBeds ? `${minBeds}+ bd` : null,
     minBaths ? `${minBaths}+ ba` : null,
@@ -114,13 +171,16 @@ export default async function DealsPage({
     wantBasement ? "basement" : null,
     pickedTypes.length ? pickedTypes.join("/") : null,
     pickedListingTypes.length && pickedListingTypes.length < 3 ? pickedListingTypes.join("/") : null,
-    cityQuery ? `in ${cityMatch?.name ?? cityQuery}` : null,
+    keyword ? `"${keyword}"` : null,
+    hasWork && maxMiles > 0 ? `within ${maxMiles} mi of work` : null,
+    cityNames.length ? `in ${cityNames.join(" / ")}` : null,
   ]
     .filter(Boolean)
     .join(", ");
 
   return (
     <div className="space-y-6">
+      <RememberSearch storageKey="ht:deals:last-search" />
       <PageHeader
         title="Live Deals"
         subtitle={`Actual homes on the market right now at or under your budget, straight from the MLS feed. Budget defaults to what you comfortably afford (${usd(comfortable)} at ${rate.toFixed(2)}%).`}
@@ -143,14 +203,14 @@ export default async function DealsPage({
                 </AutoSubmitSelect>
               </label>
               <label className="block">
-                <span className="label">City (optional)</span>
+                <span className="label">Cities (comma-separated)</span>
                 <input
                   type="text"
                   name="city"
                   defaultValue={cityQuery}
                   placeholder="anywhere"
                   list="city-options"
-                  className="input w-40"
+                  className="input w-52"
                 />
                 <datalist id="city-options">
                   {cities.map((c) => (
@@ -160,35 +220,26 @@ export default async function DealsPage({
               </label>
               <label className="block">
                 <span className="label">Min price</span>
-                <input type="number" name="minprice" defaultValue={minPrice || ""} placeholder="0" step={5000} min={0} className="input w-28" />
+                <MoneyInput name="minprice" defaultValue={minPrice || ""} placeholder="0" className="input w-28" />
               </label>
               <label className="block">
                 <span className="label">Max price</span>
-                <input type="number" name="budget" defaultValue={budget} step={10000} min={0} className="input w-32" />
+                <MoneyInput name="budget" defaultValue={budget} className="input w-32" />
               </label>
-              <fieldset className="block">
-                <span className="label">Home type (any checked = only those)</span>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-sm">
-                  {([
-                    ["house", "House"],
-                    ["condo", "Condo"],
-                    ["townhouse", "Townhouse"],
-                    ["multifamily", "Multi-family"],
-                    ["land", "Land"],
-                  ] as const).map(([v, label]) => (
-                    <label key={v} className="flex items-center gap-1.5">
-                      <input
-                        type="checkbox"
-                        name="type"
-                        value={v}
-                        defaultChecked={pickedTypes.includes(v)}
-                        className="accent-[var(--brand)]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <div className="block">
+                <span className="label">Home type</span>
+                <MultiSelectDropdown
+                  name="type"
+                  options={[
+                    { value: "house", label: "House" },
+                    { value: "condo", label: "Condo" },
+                    { value: "townhouse", label: "Townhouse" },
+                    { value: "multifamily", label: "Multi-family" },
+                    { value: "land", label: "Land" },
+                  ]}
+                  defaultSelected={pickedTypes}
+                />
+              </div>
               <label className="block">
                 <span className="label">Beds</span>
                 <input type="number" name="beds" defaultValue={minBeds || ""} placeholder="any" min={0} max={10} className="input w-20" />
@@ -230,42 +281,45 @@ export default async function DealsPage({
                 <input type="checkbox" name="basement" value="1" defaultChecked={wantBasement} className="accent-[var(--brand)]" />
                 Basement
               </label>
-              <fieldset className="block">
-                <span className="label">Listed by (any checked = only those)</span>
-                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1 text-sm">
-                  {([
-                    ["agent", "Agent"],
-                    ["owner", "Owner (FSBO)"],
-                    ["new", "New construction"],
-                  ] as const).map(([v, label]) => (
-                    <label key={v} className="flex items-center gap-1.5">
-                      <input
-                        type="checkbox"
-                        name="lt"
-                        value={v}
-                        defaultChecked={pickedListingTypes.includes(v)}
-                        className="accent-[var(--brand)]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
+              <div className="block">
+                <span className="label">Listed by</span>
+                <MultiSelectDropdown
+                  name="lt"
+                  options={[
+                    { value: "agent", label: "Agent" },
+                    { value: "owner", label: "Owner (FSBO)" },
+                    { value: "new", label: "New construction" },
+                  ]}
+                  defaultSelected={pickedListingTypes}
+                />
+              </div>
+              <label className="block">
+                <span className="label">Keyword</span>
+                <input
+                  type="text"
+                  name="kw"
+                  defaultValue={keyword}
+                  placeholder="garage, pool..."
+                  className="input w-36"
+                />
+              </label>
+              {hasWork && (
+                <label className="block">
+                  <span className="label">Max miles to work</span>
+                  <input type="number" name="maxmiles" defaultValue={maxMiles || ""} placeholder="any" min={0} className="input w-24" />
+                </label>
+              )}
               <button className="btn">Search</button>
             </div>
-            <p className="text-xs text-[var(--muted)]">
-              Min price defaults to $10,000 to keep out $1 auction teasers; set it to 0 to include
-              them. Garage/parking and foreclosure status can&apos;t be filtered by the feed.
-            </p>
           </form>
 
           {listings.length === 0 ? (
             <EmptyNote>
-              No live listings came back for {cityQuery ? `${cityQuery}, ` : ""}
+              No live listings came back for {cityNames.length ? `${cityNames.join(", ")}, ` : ""}
               {selectedName} under {usd(budget)}. Either nothing matches, or the unofficial
               listing feed is unavailable right now; try again in a few minutes.
-              {cityQuery && !cityMatch
-                ? " Small towns are matched by name against a statewide sample, so a big-city name from the suggestions works better."
+              {cityTargets.some((t) => !t.match)
+                ? " Small towns are matched by name against a statewide sample, so big-city names from the suggestions work better."
                 : ""}
             </EmptyNote>
           ) : (
@@ -329,6 +383,7 @@ export default async function DealsPage({
                         {l.city}, {l.state} {l.zip}
                         {l.yearBuilt ? ` · built ${l.yearBuilt}` : ""}
                         {l.daysOnMarket ? ` · ${l.daysOnMarket} day${l.daysOnMarket === 1 ? "" : "s"} listed` : ""}
+                        {l.milesToWork != null ? ` · ${l.milesToWork.toFixed(l.milesToWork < 10 ? 1 : 0)} mi to work` : ""}
                       </p>
                     </div>
                   </a>

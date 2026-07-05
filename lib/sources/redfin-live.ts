@@ -66,6 +66,10 @@ export interface LiveListing {
   /** Primary listing photo (Redfin CDN) when derivable; null otherwise. */
   photoUrl: string | null;
   yearBuilt: number | null;
+  lat: number | null;
+  lng: number | null;
+  /** Marketing highlights from the MLS ("ATTACHED GARAGE", "CLUBHOUSE", ...). */
+  tags: string[];
 }
 
 /**
@@ -103,6 +107,11 @@ export interface ListingFilters {
   cityRegionId?: number;
   /** Fallback for cities without a known region id: filter results by city name. */
   cityName?: string;
+  /**
+   * Client-side keyword match against the listing's MLS highlight tags, address, city,
+   * and property type (the feed has no server-side keyword search and no full remarks).
+   */
+  keyword?: string;
 }
 
 const TYPE_CODES: Record<string, string> = { house: "1", condo: "2", townhouse: "3", multifamily: "4", land: "5" };
@@ -166,10 +175,19 @@ export async function fetchLiveListings(opts: {
   const params = searchParams(opts);
   if (!params) return [];
   const fromJson = await fetchViaJson(params, opts);
-  const results = fromJson.length > 0 ? fromJson : await fetchViaCsv(params, opts);
+  let results = fromJson.length > 0 ? fromJson : await fetchViaCsv(params, opts);
   if (opts.cityName && !opts.cityRegionId) {
     const want = opts.cityName.trim().toLowerCase();
-    return results.filter((l) => l.city.trim().toLowerCase() === want);
+    results = results.filter((l) => l.city.trim().toLowerCase() === want);
+  }
+  if (opts.keyword?.trim()) {
+    const kw = opts.keyword.trim().toLowerCase();
+    results = results.filter((l) =>
+      l.tags.some((t) => t.toLowerCase().includes(kw)) ||
+      l.address.toLowerCase().includes(kw) ||
+      l.city.toLowerCase().includes(kw) ||
+      l.propertyType.toLowerCase().includes(kw),
+    );
   }
   return results;
 }
@@ -193,6 +211,8 @@ interface GisHome {
   numPictures?: number;
   yearBuilt?: { value?: number } | number;
   lotSize?: { value?: number };
+  latLong?: { value?: { latitude?: number; longitude?: number } };
+  listingTags?: unknown[];
 }
 
 const UI_PROPERTY_TYPES: Record<number, string> = {
@@ -261,6 +281,9 @@ async function fetchViaJson(
       mls,
       photoUrl: photoUrlFor(h.dataSourceId, mls, h.numPictures),
       yearBuilt: Number.isFinite(yearBuilt) && yearBuilt > 0 ? yearBuilt : null,
+      lat: Number.isFinite(Number(h.latLong?.value?.latitude)) ? Number(h.latLong!.value!.latitude) : null,
+      lng: Number.isFinite(Number(h.latLong?.value?.longitude)) ? Number(h.latLong!.value!.longitude) : null,
+      tags: (h.listingTags ?? []).filter((t): t is string => typeof t === "string"),
     });
   }
   return out.sort((a, b) => a.price - b.price);
@@ -327,6 +350,9 @@ async function fetchViaCsv(params: URLSearchParams, opts: ListingFilters): Promi
       mls: (row[need("mls#")] ?? "").trim(),
       photoUrl: null,
       yearBuilt: num(row, "year built"),
+      lat: num(row, "latitude"),
+      lng: num(row, "longitude"),
+      tags: [],
     });
   }
   return out.sort((a, b) => a.price - b.price);

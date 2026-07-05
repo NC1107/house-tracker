@@ -10,7 +10,16 @@ import { REDFIN_CITY_REGION_IDS } from "@/lib/sources/redfin-cities";
 const NUMBERS_COOKIE = "ht_numbers"; // persistent store of the user's entered numbers
 const DISMISSED_COOKIE = "ht_seen"; // set once the first-visit prompt is answered
 
-type Numbers = { income: number; downPct: number; monthlyDebts: number; homeState: string; homeCities: string[] };
+type Numbers = {
+  income: number;
+  downPct: number;
+  monthlyDebts: number;
+  homeState: string;
+  homeCities: string[];
+  workAddress: string;
+  workLat: number | null;
+  workLng: number | null;
+};
 
 /**
  * Global buyer-profile control shown once under the header (replaces the old per-page
@@ -42,6 +51,9 @@ export default function ProfileControls({
   const [debts, setDebts] = useState(monthlyDebts);
   const [homeState, setHomeState] = useState("");
   const [homeCities, setHomeCities] = useState<string[]>([]);
+  const [workAddress, setWorkAddress] = useState("");
+  const [geocodeNote, setGeocodeNote] = useState("");
+  const [saving, setSaving] = useState(false);
   const stateCities = REDFIN_CITY_REGION_IDS[homeState] ?? [];
 
   // On mount, load any durable numbers; open the popup on a genuine first visit.
@@ -54,6 +66,7 @@ export default function ProfileControls({
       setDebts(stored.monthlyDebts);
       setHomeState(stored.homeState);
       setHomeCities(stored.homeCities);
+      setWorkAddress(stored.workAddress ?? "");
     }
     if (!stored && !getCookie(DISMISSED_COOKIE)) setOpen(true);
   }, []);
@@ -63,12 +76,36 @@ export default function ProfileControls({
     router.refresh();
   }
 
-  function save() {
-    const n: Numbers = { income: inc, downPct: dp / 100, monthlyDebts: debts, homeState, homeCities };
+  async function save() {
+    setSaving(true);
+    setGeocodeNote("");
+    // Geocode the work address once at save time (US Census geocoder via our proxy).
+    let workLat: number | null = null;
+    let workLng: number | null = null;
+    if (workAddress.trim().length >= 5) {
+      try {
+        const r = await fetch(`/api/geocode?address=${encodeURIComponent(workAddress.trim())}`);
+        const g = await r.json();
+        if (g.ok) {
+          workLat = g.lat;
+          workLng = g.lng;
+        } else {
+          setGeocodeNote("Couldn't locate that address; distance-to-work stays off. Try adding city, state, and zip.");
+        }
+      } catch {
+        setGeocodeNote("Address lookup failed; distance-to-work stays off.");
+      }
+    }
+    const n: Numbers = {
+      income: inc, downPct: dp / 100, monthlyDebts: debts,
+      homeState, homeCities,
+      workAddress: workAddress.trim(), workLat, workLng,
+    };
     writeCookie(NUMBERS_COOKIE, JSON.stringify(n));
     writeCookie(DISMISSED_COOKIE, "1");
     setSaved(n);
     personalize(n);
+    setSaving(false);
     setOpen(false);
   }
 
@@ -182,6 +219,17 @@ export default function ProfileControls({
                   ))}
                 </select>
               </label>
+              <label className="block">
+                <span className="label">Work address (optional, enables distance-to-work on listings)</span>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="123 Main St, Baltimore, MD 21201"
+                  value={workAddress}
+                  onChange={(e) => setWorkAddress(e.target.value)}
+                />
+                {geocodeNote && <p className="mt-1 text-xs text-[var(--warning)]">{geocodeNote}</p>}
+              </label>
               {stateCities.length > 0 && (
                 <fieldset>
                   <span className="label">Cities (pick any)</span>
@@ -216,8 +264,8 @@ export default function ProfileControls({
                     Clear
                   </button>
                 )}
-                <button type="button" onClick={save} className="btn">
-                  Save &amp; personalize
+                <button type="button" onClick={save} disabled={saving} className="btn">
+                  {saving ? "Saving..." : "Save & personalize"}
                 </button>
               </div>
             </div>
@@ -239,6 +287,9 @@ function readNumbers(): Numbers | null {
       monthlyDebts: Number(p.monthlyDebts),
       homeState: typeof p.homeState === "string" ? p.homeState : "",
       homeCities: Array.isArray(p.homeCities) ? p.homeCities.filter((c: unknown) => typeof c === "string") : [],
+      workAddress: typeof p.workAddress === "string" ? p.workAddress : "",
+      workLat: Number.isFinite(Number(p.workLat)) && p.workLat != null ? Number(p.workLat) : null,
+      workLng: Number.isFinite(Number(p.workLng)) && p.workLng != null ? Number(p.workLng) : null,
     };
     return Number.isFinite(n.income) && Number.isFinite(n.downPct) && Number.isFinite(n.monthlyDebts) ? n : null;
   } catch {

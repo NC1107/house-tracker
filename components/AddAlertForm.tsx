@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createAlert } from "@/app/alerts/actions";
+import MoneyInput from "@/components/MoneyInput";
 
 type StateOpt = { id: number; name: string };
 
@@ -87,8 +88,8 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
               <input type="text" name="cityName" placeholder="anywhere in state" className="input" />
             </label>
             <label className="block">
-              <span className="label">Max price ($)</span>
-              <input type="number" name="maxPrice" min={0} step={10000} defaultValue={400000} className="input" />
+              <span className="label">Max price</span>
+              <MoneyInput name="maxPrice" defaultValue={400000} className="input w-full" />
             </label>
             <label className="block">
               <span className="label">Min bedrooms</span>
@@ -105,8 +106,8 @@ export default function AddAlertForm({ states }: { states: StateOpt[] }) {
               <input type="number" name="minStories" min={1} max={4} step={1} defaultValue={2} className="input" />
             </label>
             <label className="block">
-              <span className="label">Min price ($, filters $1 auctions)</span>
-              <input type="number" name="minPrice" min={0} step={5000} defaultValue={10000} className="input" />
+              <span className="label">Min price</span>
+              <MoneyInput name="minPrice" defaultValue={10000} className="input w-full" />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">

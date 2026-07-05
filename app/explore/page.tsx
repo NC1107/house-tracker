@@ -5,6 +5,7 @@ import { statesList, metrosForState, metricHistory, latestMetric, listAlertRules
 import { yoyChangeSeries } from "@/lib/trends";
 import { CHART } from "@/lib/chartTheme";
 import AutoSubmitSelect from "@/components/AutoSubmitSelect";
+import RememberSearch from "@/components/RememberSearch";
 import { getProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function ExplorePage({
 
   return (
     <div className="space-y-6">
+      <RememberSearch storageKey="ht:explore:last-search" />
       <PageHeader
         title="Region Explorer"
         subtitle="Home values, rents, and how fast prices are moving, by state or metro area."

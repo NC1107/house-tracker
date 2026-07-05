@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { PROFILE_COOKIE } from "@/lib/profile-shared";
 import { usd } from "@/lib/format";
 import NumberField from "@/components/NumberField";
+import SegmentedControl from "@/components/SegmentedControl";
 import { REDFIN_CITY_REGION_IDS } from "@/lib/sources/redfin-cities";
 
 const NUMBERS_COOKIE = "ht_numbers"; // persistent store of the user's entered numbers
@@ -132,30 +133,15 @@ export default function ProfileControls({
   return (
     <div className="card flex flex-wrap items-center justify-between gap-3 py-3">
       <div className="flex items-center gap-3 text-sm">
-        <div className="inline-flex rounded-lg border border-[var(--border)] p-0.5" role="group" aria-label="Whose numbers to show">
-          <button
-            type="button"
-            onClick={useAverages}
-            aria-pressed={!isCustom}
-            aria-label="Use US average numbers"
-            className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-              !isCustom ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
-            }`}
-          >
-            US avg
-          </button>
-          <button
-            type="button"
-            onClick={useMine}
-            aria-pressed={isCustom}
-            aria-label="Use my numbers"
-            className={`rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-              isCustom ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
-            }`}
-          >
-            Me
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Whose numbers to show"
+          value={isCustom ? "me" : "avg"}
+          onChange={(v) => (v === "avg" ? useAverages() : useMine())}
+          options={[
+            { value: "avg", label: "US avg", ariaLabel: "Use US average numbers" },
+            { value: "me", label: "Me", ariaLabel: "Use my numbers" },
+          ]}
+        />
         <span className="text-[var(--text-2)]">
           {usd(income)}/yr · {Math.round(downPct * 100)}% down
           {monthlyDebts > 0 ? ` · ${usd(monthlyDebts)}/mo debts` : ""}

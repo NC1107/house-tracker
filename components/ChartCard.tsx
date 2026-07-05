@@ -27,14 +27,14 @@ export function ChartCard({
   const badge = directionBadge(direction, directionNote);
   return (
     <Card>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <span className="flex min-w-0 items-center gap-2">
-          <InfoTip text={whatFor} label={`About: ${title}`} />
-          <h2 className="truncate font-semibold">{title}</h2>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+        <span className="flex min-w-0 items-start gap-2">
+          <span className="pt-1"><InfoTip text={whatFor} label={`About: ${title}`} /></span>
+          <h2 className="font-semibold leading-snug">{title}</h2>
         </span>
-        <span className="flex shrink-0 items-center gap-2">
+        <span className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           {badge}
-          {source && <span className="text-xs text-[var(--muted)]">{source}</span>}
+          {source && <span className="truncate text-xs text-[var(--muted)]">{source}</span>}
         </span>
       </div>
       {children}

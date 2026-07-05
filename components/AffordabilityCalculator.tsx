@@ -11,6 +11,7 @@ import {
 import { usd, pct } from "@/lib/format";
 import { Term } from "@/components/Term";
 import NumberInput from "@/components/NumberField";
+import SegmentedControl from "@/components/SegmentedControl";
 
 type DpKind = "percent" | "amount";
 
@@ -117,28 +118,15 @@ export default function AffordabilityCalculator({
         <h2 className="text-lg font-semibold">Your numbers</h2>
         <p className="-mt-2 text-xs text-[var(--muted)]">Prefilled with average US values. Edit to match your situation.</p>
 
-        <div className="inline-flex rounded-lg border border-[var(--border)] p-0.5 text-sm" role="group" aria-label="Affordability mode">
-          <button
-            type="button"
-            onClick={() => setMode("dti")}
-            aria-pressed={mode === "dti"}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-              mode === "dti" ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
-            }`}
-          >
-            What a lender allows
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("budget")}
-            aria-pressed={mode === "budget"}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-              mode === "budget" ? "bg-[var(--brand)] text-white" : "text-[var(--text-2)] hover:text-[var(--text-1)]"
-            }`}
-          >
-            What my budget allows
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel="Affordability mode"
+          value={mode}
+          onChange={setMode}
+          options={[
+            { value: "dti", label: "What a lender allows" },
+            { value: "budget", label: "What my budget allows" },
+          ]}
+        />
 
         {mode === "dti" ? (
           <>

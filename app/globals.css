@@ -83,6 +83,9 @@ input:focus-visible,
 --------------------------------------------------------------------------- */
 @layer components {
   .card {
+    /* Grid/flex children default to min-width auto; charts then push cards past the
+       viewport on phones. Zero it so cards always shrink to fit. */
+    min-width: 0;
     background-color: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;

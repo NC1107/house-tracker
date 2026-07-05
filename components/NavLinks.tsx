@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDismissable } from "@/lib/useDismissable";
 
 type Item = { href: string; label: string };
 type Group = { label: string; items: Item[] };
@@ -68,9 +69,9 @@ export default function NavLinks() {
 const MENU_WIDTH = 176; // px, matches min-w-[11rem]
 
 function NavGroup({ group, pathname }: { group: Group; pathname: string }) {
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { open, setOpen } = useDismissable(ref, menuRef);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const groupActive = group.items.some((i) => isActive(pathname, i.href));
 
@@ -85,34 +86,21 @@ function NavGroup({ group, pathname }: { group: Group; pathname: string }) {
     setPos({ top: rect.bottom + 4, left });
   }, [open]);
 
-  // Close on outside click, Escape, scroll, or resize (the anchor moves out from under it).
+  // The fixed-position menu is anchored to the trigger, so close when the anchor moves
+  // (scroll/resize); outside-click and Escape come from useDismissable.
   useEffect(() => {
     if (!open) return;
-    function onDown(e: MouseEvent | TouchEvent) {
-      const t = e.target as Node;
-      if (ref.current?.contains(t) || menuRef.current?.contains(t)) return;
-      setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
     function onMove(e: Event) {
       if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
       setOpen(false);
     }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    document.addEventListener("keydown", onKey);
     window.addEventListener("scroll", onMove, { capture: true, passive: true });
     window.addEventListener("resize", onMove);
     return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-      document.removeEventListener("keydown", onKey);
       window.removeEventListener("scroll", onMove, { capture: true });
       window.removeEventListener("resize", onMove);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   // Close after navigating.
   useEffect(() => setOpen(false), [pathname]);

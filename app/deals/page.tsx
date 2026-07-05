@@ -1,10 +1,10 @@
-import Image from "next/image";
 import { PageHeader, EmptyNote } from "@/components/ui";
 import { statesList, latestMortgageRate, dbConfigured } from "@/lib/queries";
 import { fetchLiveListings, fetchStateCities, REDFIN_STATE_REGION_IDS } from "@/lib/sources/redfin-live";
 import AutoSubmitSelect from "@/components/AutoSubmitSelect";
 import MoneyInput from "@/components/MoneyInput";
 import RememberSearch from "@/components/RememberSearch";
+import ListingCard from "@/components/ListingCard";
 import MultiSelectDropdown from "@/components/MultiSelectDropdown";
 import { haversineMiles } from "@/lib/geo/distance";
 import type { LiveListing } from "@/lib/sources/redfin-live";
@@ -241,17 +241,17 @@ export default async function DealsPage({
                 />
               </div>
               <label className="block">
-                <span className="label">Beds</span>
+                <span className="label">Beds (min)</span>
                 <input type="number" name="beds" defaultValue={minBeds || ""} placeholder="any" min={0} max={10} className="input w-20" />
               </label>
               <label className="block">
-                <span className="label">Baths</span>
+                <span className="label">Baths (min)</span>
                 <input type="number" name="baths" defaultValue={minBaths || ""} placeholder="any" min={0} max={10} className="input w-20" />
               </label>
             </div>
             <div className="flex flex-wrap items-end gap-3">
               <label className="block">
-                <span className="label">Stories</span>
+                <span className="label">Stories (min)</span>
                 <input type="number" name="stories" defaultValue={minStories || ""} placeholder="any" min={0} max={4} className="input w-20" />
               </label>
               <label className="block">
@@ -330,63 +330,11 @@ export default async function DealsPage({
                   {listings.length >= 350 ? "+" : ""} homes under {usd(budget)}
                   {filterSummary ? ` (${filterSummary})` : ""} in {selectedName}
                 </h2>
-                <span className="text-xs text-[var(--muted)]">cheapest first; showing {Math.min(listings.length, 30)} of a sample of up to 350</span>
+                <span className="text-xs text-[var(--muted)]">Showing {Math.min(listings.length, 30)} of {listings.length}{listings.length >= 350 ? "+" : ""} · cheapest first</span>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {listings.slice(0, 30).map((l, i) => (
-                  <a
-                    key={`${l.url}-${i}`}
-                    href={l.url || undefined}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="card group overflow-hidden !p-0 transition-shadow hover:shadow-lg"
-                  >
-                    <div className="relative aspect-[3/2] w-full overflow-hidden bg-[var(--surface-2)]">
-                      {l.photoUrl ? (
-                        <Image
-                          src={l.photoUrl}
-                          alt={l.address ? `Photo of ${l.address}` : "Listing photo"}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                          referrerPolicy="no-referrer"
-                          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                        />
-                      ) : (
-                        <div className="grid h-full w-full place-items-center text-sm text-[var(--muted)]">
-                          No photo
-                        </div>
-                      )}
-                      {l.daysOnMarket !== null && l.daysOnMarket <= 3 && (
-                        <span className="absolute left-2 top-2 rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-medium text-white">
-                          New
-                        </span>
-                      )}
-                      <span className="absolute bottom-2 left-2 rounded-lg bg-black/65 px-2 py-1 text-base font-bold tabular-nums text-white">
-                        {usd(l.price)}
-                      </span>
-                    </div>
-                    <div className="space-y-1 p-3">
-                      <p className="text-sm text-[var(--text-2)]">
-                        <span className="font-medium text-[var(--text-1)]">{l.beds ?? "?"} bd</span>
-                        {" · "}
-                        <span className="font-medium text-[var(--text-1)]">{l.baths ?? "?"} ba</span>
-                        {l.sqft ? (
-                          <>
-                            {" · "}
-                            <span className="font-medium text-[var(--text-1)]">{l.sqft.toLocaleString()}</span> sqft
-                          </>
-                        ) : null}
-                        {l.pricePerSqft ? ` · $${Math.round(l.pricePerSqft)}/sqft` : ""}
-                      </p>
-                      <p className="truncate text-sm font-medium">{l.address || "Address withheld"}</p>
-                      <p className="truncate text-xs text-[var(--muted)]">
-                        {l.city}, {l.state} {l.zip}
-                        {l.yearBuilt ? ` · built ${l.yearBuilt}` : ""}
-                        {l.daysOnMarket ? ` · ${l.daysOnMarket} day${l.daysOnMarket === 1 ? "" : "s"} listed` : ""}
-                        {l.milesToWork != null ? ` · ${l.milesToWork.toFixed(l.milesToWork < 10 ? 1 : 0)} mi to work` : ""}
-                      </p>
-                    </div>
-                  </a>
+                  <ListingCard key={`${l.url}-${i}`} listing={l} />
                 ))}
               </div>
             </>

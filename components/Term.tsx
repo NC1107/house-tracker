@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import { useDismissable } from "@/lib/useDismissable";
 
 /**
  * Inline glossary: wraps a jargon term so clicking it opens a small popover with a
@@ -66,26 +67,8 @@ export function Term({ term, children }: { term: keyof typeof GLOSSARY | string;
   // Lookups are case-tolerant on the first letter so "Months of supply" hits "months of supply".
   const entry = GLOSSARY[term] ?? GLOSSARY[term.charAt(0).toLowerCase() + term.slice(1)];
   const text = children ?? term;
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent | TouchEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("touchstart", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const { open, setOpen } = useDismissable(ref);
 
   if (!entry) return <>{text}</>;
   return (

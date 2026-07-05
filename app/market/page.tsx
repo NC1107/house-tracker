@@ -3,6 +3,7 @@ import { statesList, statesWithMarketData, metrosWithMarketData, citiesWithMarke
 import { marketHeat, type MarketInputs } from "@/lib/marketheat";
 import { Term } from "@/components/Term";
 import AutoSubmitSelect from "@/components/AutoSubmitSelect";
+import RememberSearch from "@/components/RememberSearch";
 import { getProfile } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +81,7 @@ export default async function MarketPage({
 
   return (
     <div className="space-y-6">
+      <RememberSearch storageKey="ht:market:last-search" />
       <PageHeader
         title="Market Heat & Deal Signals"
         subtitle="A 0-100 buyer-leverage score from inventory, days-on-market, price cuts, and sale-to-list. Higher means more negotiating power for you."

@@ -78,6 +78,27 @@ export default function ProfileControls({
     if (!stored && !getCookie(DISMISSED_COOKIE)) setOpen(true);
   }, []);
 
+  // The dialog is an overlay: freeze the page behind it and close on Escape
+  // like the backdrop click. The lock sits on <html>; "clip" (unlike "hidden")
+  // also blocks programmatic scrolling, e.g. anchor/focus jumps.
+  useEffect(() => {
+    if (!open) return;
+    const html = document.documentElement;
+    const prevHtml = html.style.overflow;
+    const prevBody = document.body.style.overflow;
+    html.style.overflow = CSS.supports("overflow", "clip") ? "clip" : "hidden";
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      html.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   function personalize(n: Numbers) {
     writeCookie(PROFILE_COOKIE, JSON.stringify(n));
     router.refresh();

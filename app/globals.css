@@ -161,3 +161,23 @@ input:focus-visible,
   background-color: var(--surface) !important;
   color: var(--text-1) !important;
 }
+
+/* Benchmark/reference lines: label gets a surface-colored halo so it stays
+   readable on top of a series; hovering the line or label emphasizes it. */
+.ht-refline line {
+  pointer-events: visibleStroke;
+  transition: stroke-width 120ms ease;
+}
+.ht-refline text {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  font-weight: 600;
+}
+.ht-refline:hover line {
+  stroke-width: 3px;
+}
+.ht-refline:hover text {
+  font-size: 12px;
+}

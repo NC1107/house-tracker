@@ -2,6 +2,7 @@ import Link from "next/link";
 import TimeSeriesChart, { type RefLine } from "@/components/TimeSeriesChart";
 import { PageHeader, Card, Stat, SectionTitle, Meter, EmptyNote } from "@/components/ui";
 import { ChartCard } from "@/components/ChartCard";
+import { PaymentToBuyCard, PriceToIncomeCard } from "@/components/SharedChartCards";
 import { Term } from "@/components/Term";
 import { latestMortgageRate, rateHistory, nationalSeries, listAlertRules, dbConfigured } from "@/lib/queries";
 import { buyerSnapshot, NATIONAL } from "@/lib/reference";
@@ -86,17 +87,7 @@ export default async function OverviewPage() {
   // Derived buying-power trends (the "true cost" story buyers care about most).
   const paymentTrend = paymentToBuySeries(medianPrice, rates);
   const p2iTrend = priceToIncomeSeries(medianPrice, income);
-
-  // "Ideal world" benchmarks drawn as horizontal lines, so the eye can judge the level,
-  // not just the shape: a comfortable payment (28% of income) and a healthy valuation.
   const latestIncome = income.at(-1)?.value ?? snap.medianIncome;
-  const comfortablePayment = Math.round((latestIncome * 0.28) / 12);
-  const paymentLines: RefLine[] = [
-    { value: comfortablePayment, label: `Comfortable ≤ ${usd(comfortablePayment)}`, color: CHART.good },
-  ];
-  const p2iLines: RefLine[] = [
-    { value: 3.5, label: "~3.5× healthy", color: CHART.good },
-  ];
 
   const burdenTone = snap.housingBurden > 0.36 ? "critical" : snap.housingBurden > 0.3 ? "warning" : "good";
   const p2iTone = snap.priceToIncome > 5 ? "critical" : snap.priceToIncome > 4 ? "warning" : "good";
@@ -178,28 +169,8 @@ export default async function OverviewPage() {
         <div>
           <SectionTitle>Buying power over time</SectionTitle>
           <div className="grid gap-4 lg:grid-cols-2">
-            {paymentTrend.length > 0 && (
-              <ChartCard
-                title="Monthly payment to buy the typical US home"
-                formula="payment = PITI on the median-priced home, 15% down, at that month's rate"
-                source="FRED: median sale price (MSPUS) + Freddie Mac 30-yr rates"
-                direction="lower"
-                whatFor="The real monthly cost of the median home (full PITI: principal, interest, taxes, insurance). The 2021-2023 spike is the rate shock: same house, far bigger payment. The green dashed line is a comfortable budget for the median household: 28% of today's median income."
-              >
-                <TimeSeriesChart data={paymentTrend} format="usd" color={CHART.series2} refLines={paymentLines} />
-              </ChartCard>
-            )}
-            {p2iTrend.length > 0 && (
-              <ChartCard
-                title="Home price-to-income ratio"
-                formula="ratio = median home price ÷ median household income"
-                source="FRED: median sale price (MSPUS) ÷ median household income"
-                direction="lower"
-                whatFor="A valuation gauge: how many years of gross income the typical home costs. Around 3-4× is historically normal (the green dashed line marks 3.5×); 5×+ means homes are expensive relative to what people earn."
-              >
-                <TimeSeriesChart data={p2iTrend} format="ratio" color={CHART.series1} refLines={p2iLines} />
-              </ChartCard>
-            )}
+            {paymentTrend.length > 0 && <PaymentToBuyCard data={paymentTrend} latestIncome={latestIncome} />}
+            {p2iTrend.length > 0 && <PriceToIncomeCard data={p2iTrend} />}
           </div>
         </div>
       )}
@@ -221,19 +192,24 @@ export default async function OverviewPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           <ChartCard
-            title="30-year fixed mortgage rate"
+            title="30-yr fixed mortgage rate"
             formula="+1 pt on the rate ≈ +10% on the monthly payment"
             source={rateSource}
             direction="lower"
+            latest={rateChart.at(-1)?.value}
+            benchmark={breakevenShown ? breakevenRate : undefined}
+            format="percent2"
             whatFor={rateWhatFor}
           >
             <TimeSeriesChart data={rateChart} format="percent2" color={CHART.series1} refLines={rateLines} />
           </ChartCard>
           <ChartCard
-            title="Case-Shiller US National Home Price Index"
+            title="Case-Shiller price index"
             formula="index of repeat sales of the same homes, Jan 2000 = 100"
             source="S&P CoreLogic Case-Shiller via FRED"
             direction="lower"
+            latest={caseShiller.at(-1)?.value}
+            format="index"
             whatFor="The cleanest measure of pure US home-price change: it tracks repeat sales of the same houses, so the mix of what happened to sell doesn't distort it. A value of 300 means prices have tripled since Jan 2000. Falling or flat is a better entry point for buyers."
           >
             <TimeSeriesChart data={caseShiller} format="index" color={CHART.series2} />

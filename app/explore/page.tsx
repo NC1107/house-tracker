@@ -43,7 +43,7 @@ export default async function ExplorePage({
   const yoy = yoyChangeSeries(zhvi);
 
   // The zero line separates rising from falling prices; alert triggers draw on top of it.
-  const yoyLines: RefLine[] = [{ value: 0, label: "0% flat", color: CHART.axis, labelPos: "right" }];
+  const yoyLines: RefLine[] = [{ value: 0, label: "0% flat", color: CHART.benchmark, labelPos: "right" }];
   if (regionId === stateId) {
     const rules = await listAlertRules();
     for (const r of rules) {
@@ -119,18 +119,23 @@ export default async function ExplorePage({
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
               <ChartCard
-                title={`${regionName}: typical home value`}
+                title={`${regionName}: home values`}
                 source="Zillow ZHVI"
                 direction="lower"
+                latest={zhvi.at(-1)?.value}
+                format="usd"
                 whatFor="The typical home value over time. Lower (or a dip) means better entry prices for buyers."
               >
                 <TimeSeriesChart data={zhvi} format="usd" color={CHART.series1} />
               </ChartCard>
               <ChartCard
-                title={`${regionName}: year-over-year price change`}
+                title={`${regionName}: YoY price change`}
                 formula="YoY % = typical home value vs. the same month a year earlier"
                 source="derived from Zillow ZHVI"
                 direction="lower"
+                latest={yoy.at(-1)?.value}
+                benchmark={0}
+                format="percent"
                 whatFor="How fast prices are rising or falling. Below the 0% line prices are falling; low or negative growth means a cooling market and a better negotiating position. Amber dashed lines are price-move alerts you set."
               >
                 <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} refLines={yoyLines} />
@@ -140,6 +145,8 @@ export default async function ExplorePage({
                   title={`${regionName}: typical rent`}
                   source="Zillow ZORI"
                   direction="lower"
+                  latest={zori.at(-1)?.value}
+                  format="usd"
                   whatFor="Typical asking rent, useful for a rent-vs-buy comparison in this area."
                 >
                   <TimeSeriesChart data={zori} format="usd" color={CHART.series3} />
@@ -147,9 +154,11 @@ export default async function ExplorePage({
               )}
               {listPrice.length > 0 && (
                 <ChartCard
-                  title={`${regionName}: median asking price`}
+                  title={`${regionName}: asking price`}
                   source="Realtor.com"
                   direction="lower"
+                  latest={listPrice.at(-1)?.value}
+                  format="usd"
                   whatFor="What sellers are asking right now. Falling asking prices show sellers adjusting to buyers before sale prices move."
                 >
                   <TimeSeriesChart data={listPrice} format="usd" color={CHART.series1} />
@@ -157,19 +166,23 @@ export default async function ExplorePage({
               )}
               {newListings.length > 0 && (
                 <ChartCard
-                  title={`${regionName}: new listings per month`}
+                  title={`${regionName}: new listings`}
                   source="Realtor.com"
                   direction="higher"
-                  whatFor="Fresh supply hitting the market. More new listings means more choice and less competition per home."
+                  latest={newListings.at(-1)?.value}
+                  format="number"
+                  whatFor="Fresh supply hitting the market per month. More new listings means more choice and less competition per home."
                 >
                   <TimeSeriesChart data={newListings} format="number" color={CHART.series2} />
                 </ChartCard>
               )}
               {fhfa.length > 0 && (
                 <ChartCard
-                  title={`${regionName}: long-run price index (since 1975)`}
+                  title={`${regionName}: prices since 1975`}
                   source="FHFA HPI"
                   direction="lower"
+                  latest={fhfa.at(-1)?.value}
+                  format="index"
                   whatFor="Government price index across five decades. Puts today's prices in the longest possible context, including past booms and busts."
                 >
                   <TimeSeriesChart data={fhfa} format="index" color={CHART.series3} />

@@ -11,14 +11,10 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import type { SeriesPoint } from "@/lib/types";
+import type { SeriesPoint, ValueFormat } from "@/lib/types";
 import { CHART } from "@/lib/chartTheme";
 
-/**
- * Value format for the Y axis / tooltip. Passed as a plain string (not a function) so this
- * client component can be rendered from a Server Component.
- */
-export type ValueFormat = "usd" | "percent" | "percent2" | "index" | "number" | "months" | "ratio";
+export type { ValueFormat };
 
 /**
  * Horizontal marker line, e.g. an alert trigger ("Alert: below 5%") or a personal
@@ -207,9 +203,12 @@ export default function TimeSeriesChart({
             contentStyle={{ fontSize: 12, borderRadius: 10 }}
             cursor={{ stroke: CHART.axis, strokeWidth: 1, strokeDasharray: "3 3" }}
           />
+          <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
+          {/* After the Area so benchmark lines draw on top of the series, not under it. */}
           {refLines.map((l) => (
             <ReferenceLine
               key={`${l.label}:${l.value}`}
+              className="ht-refline"
               y={l.value}
               stroke={l.color ?? CHART.warning}
               strokeDasharray="6 4"
@@ -223,7 +222,6 @@ export default function TimeSeriesChart({
               }}
             />
           ))}
-          <Area type="monotone" dataKey="value" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

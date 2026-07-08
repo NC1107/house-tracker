@@ -10,6 +10,9 @@ export const CHART = {
   good: "#0ca30c",
   warning: "#f59e0b",
   critical: "#d03b3b",
+  /** Neutral benchmark/reference lines. Magenta: CVD-validated against all three
+      series hues and >=3:1 on both surfaces, and not a status color. */
+  benchmark: "#d6409f",
   grid: "#cbd5e1",
   axis: "#94a3b8",
 } as const;

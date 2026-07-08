@@ -6,6 +6,7 @@ import { PROFILE_COOKIE } from "@/lib/profile-shared";
 import { usd } from "@/lib/format";
 import NumberField from "@/components/NumberField";
 import SegmentedControl from "@/components/SegmentedControl";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { REDFIN_CITY_REGION_IDS } from "@/lib/sources/redfin-cities";
 
 const NUMBERS_COOKIE = "ht_numbers"; // persistent store of the user's entered numbers
@@ -53,6 +54,8 @@ export default function ProfileControls({
   const [homeState, setHomeState] = useState("");
   const [homeCities, setHomeCities] = useState<string[]>([]);
   const [workAddress, setWorkAddress] = useState("");
+  /** Coordinates from a picked suggestion; null once the text is hand-edited. */
+  const [workCoords, setWorkCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [geocodeNote, setGeocodeNote] = useState("");
   const [saving, setSaving] = useState(false);
   const stateCities = REDFIN_CITY_REGION_IDS[homeState] ?? [];
@@ -68,6 +71,9 @@ export default function ProfileControls({
       setHomeState(stored.homeState);
       setHomeCities(stored.homeCities);
       setWorkAddress(stored.workAddress ?? "");
+      if (stored.workLat !== null && stored.workLng !== null) {
+        setWorkCoords({ lat: stored.workLat, lng: stored.workLng });
+      }
     }
     if (!stored && !getCookie(DISMISSED_COOKIE)) setOpen(true);
   }, []);
@@ -80,10 +86,11 @@ export default function ProfileControls({
   async function save() {
     setSaving(true);
     setGeocodeNote("");
-    // Geocode the work address once at save time (US Census geocoder via our proxy).
-    let workLat: number | null = null;
-    let workLng: number | null = null;
-    if (workAddress.trim().length >= 5) {
+    // A picked suggestion already carries its coordinates; only hand-typed
+    // addresses fall back to geocoding at save time (US Census via our proxy).
+    let workLat: number | null = workCoords?.lat ?? null;
+    let workLng: number | null = workCoords?.lng ?? null;
+    if (workLat === null && workAddress.trim().length >= 5) {
       try {
         const r = await fetch(`/api/geocode?address=${encodeURIComponent(workAddress.trim())}`);
         const g = await r.json();
@@ -208,13 +215,19 @@ export default function ProfileControls({
               </label>
               <label className="block">
                 <span className="label">Work address (optional, enables distance-to-work on listings)</span>
-                <input
-                  type="text"
-                  className="input"
+                <AddressAutocomplete
                   name="workAddress"
                   placeholder="123 Main St, Baltimore, MD 21201"
                   value={workAddress}
-                  onChange={(e) => setWorkAddress(e.target.value)}
+                  onChange={(text) => {
+                    setWorkAddress(text);
+                    setWorkCoords(null);
+                  }}
+                  onSelect={(s) => {
+                    setWorkAddress(s.label);
+                    setWorkCoords({ lat: s.lat, lng: s.lng });
+                    setGeocodeNote("");
+                  }}
                 />
                 {geocodeNote && <p className="mt-1 text-xs text-[var(--warning)]">{geocodeNote}</p>}
               </label>

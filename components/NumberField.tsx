@@ -16,6 +16,7 @@ export default function NumberField({
   step = 1,
   min = 0,
   max,
+  name,
 }: {
   value: number;
   onChange: (n: number) => void;
@@ -24,6 +25,7 @@ export default function NumberField({
   step?: number;
   min?: number;
   max?: number;
+  name?: string;
 }) {
   const [text, setText] = useState(() => display(value));
 
@@ -41,6 +43,7 @@ export default function NumberField({
       <input
         type="text"
         inputMode="decimal"
+        name={name}
         step={step}
         className={`input ${prefix ? "pl-7" : ""} ${suffix ? "pr-8" : ""}`}
         value={text}

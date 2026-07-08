@@ -28,6 +28,8 @@ export interface RefLine {
   value: number;
   label: string;
   color?: string;
+  /** Which end of the line the label sits at (default "left"); use "right" to avoid overlaps. */
+  labelPos?: "left" | "right";
 }
 
 const RANGES: { key: string; days: number }[] = [
@@ -171,7 +173,8 @@ export default function TimeSeriesChart({
         </div>
       )}
       <ResponsiveContainer width="100%" height={height}>
-        <AreaChart data={shown} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
+        {/* Extra top margin keeps reference-line labels near the top edge from clipping. */}
+        <AreaChart data={shown} margin={{ top: 14, right: 12, bottom: 0, left: 0 }}>
           <defs>
             <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.22} />
@@ -214,7 +217,7 @@ export default function TimeSeriesChart({
               ifOverflow="extendDomain"
               label={{
                 value: l.label,
-                position: "insideBottomLeft",
+                position: l.labelPos === "right" ? "insideBottomRight" : "insideBottomLeft",
                 fontSize: 11,
                 fill: l.color ?? CHART.warning,
               }}

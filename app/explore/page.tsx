@@ -1,4 +1,4 @@
-import TimeSeriesChart from "@/components/TimeSeriesChart";
+import TimeSeriesChart, { type RefLine } from "@/components/TimeSeriesChart";
 import { ChartCard } from "@/components/ChartCard";
 import { PageHeader, EmptyNote, Freshness } from "@/components/ui";
 import { statesList, metrosForState, metricHistory, latestMetric, listAlertRules, dbConfigured } from "@/lib/queries";
@@ -42,8 +42,8 @@ export default async function ExplorePage({
   const forecast = regionId ? await latestMetric(regionId, "zhvf_forecast") : null;
   const yoy = yoyChangeSeries(zhvi);
 
-  // If the user set a price-move alert on this state, draw its trigger on the YoY chart.
-  const yoyLines: { value: number; label: string }[] = [];
+  // The zero line separates rising from falling prices; alert triggers draw on top of it.
+  const yoyLines: RefLine[] = [{ value: 0, label: "0% flat", color: CHART.axis, labelPos: "right" }];
   if (regionId === stateId) {
     const rules = await listAlertRules();
     for (const r of rules) {
@@ -51,8 +51,8 @@ export default async function ExplorePage({
       const t = Math.abs(Number(r.params.pctThreshold));
       if (!Number.isFinite(t)) continue;
       const direction = String(r.params.direction ?? "down");
-      if (direction !== "up") yoyLines.push({ value: -t, label: `-${t}%` });
-      if (direction !== "down") yoyLines.push({ value: t, label: `+${t}%` });
+      if (direction !== "up") yoyLines.push({ value: -t, label: `Alert -${t}%` });
+      if (direction !== "down") yoyLines.push({ value: t, label: `Alert +${t}%` });
     }
   }
 
@@ -128,9 +128,10 @@ export default async function ExplorePage({
               </ChartCard>
               <ChartCard
                 title={`${regionName}: year-over-year price change`}
-                source="derived from ZHVI"
+                formula="YoY % = typical home value vs. the same month a year earlier"
+                source="derived from Zillow ZHVI"
                 direction="lower"
-                whatFor="How fast prices are rising or falling. Falling/low growth means a cooling market and a better negotiating position."
+                whatFor="How fast prices are rising or falling. Below the 0% line prices are falling; low or negative growth means a cooling market and a better negotiating position. Amber dashed lines are price-move alerts you set."
               >
                 <TimeSeriesChart data={yoy} format="percent" color={CHART.series2} refLines={yoyLines} />
               </ChartCard>

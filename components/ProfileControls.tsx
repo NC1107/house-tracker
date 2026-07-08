@@ -171,16 +171,16 @@ export default function ProfileControls({
             <div className="mt-4 space-y-3">
               <label className="block">
                 <span className="label">Household income /yr</span>
-                <NumberField value={inc} onChange={setInc} prefix="$" step={5000} />
+                <NumberField name="income" value={inc} onChange={setInc} prefix="$" step={5000} />
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
                   <span className="label">Down payment</span>
-                  <NumberField value={dp} onChange={setDp} suffix="%" step={1} max={100} />
+                  <NumberField name="downPct" value={dp} onChange={setDp} suffix="%" step={1} max={100} />
                 </label>
                 <label className="block">
                   <span className="label">Monthly debt payments</span>
-                  <NumberField value={debts} onChange={setDebts} prefix="$" step={50} />
+                  <NumberField name="monthlyDebts" value={debts} onChange={setDebts} prefix="$" step={50} />
                   <p className="mt-1 text-xs leading-snug text-[var(--muted)]">
                     Loan/card minimums only, not rent or general spending.
                   </p>
@@ -193,6 +193,7 @@ export default function ProfileControls({
                 <span className="label">Where are you looking to buy? (optional)</span>
                 <select
                   className="input"
+                  name="homeState"
                   value={homeState}
                   onChange={(e) => {
                     setHomeState(e.target.value);
@@ -210,6 +211,7 @@ export default function ProfileControls({
                 <input
                   type="text"
                   className="input"
+                  name="workAddress"
                   placeholder="123 Main St, Baltimore, MD 21201"
                   value={workAddress}
                   onChange={(e) => setWorkAddress(e.target.value)}
@@ -224,6 +226,7 @@ export default function ProfileControls({
                       <label key={c.id} className="flex items-center gap-1.5">
                         <input
                           type="checkbox"
+                          name="homeCities"
                           checked={homeCities.includes(c.name)}
                           onChange={(e) =>
                             setHomeCities((prev) =>

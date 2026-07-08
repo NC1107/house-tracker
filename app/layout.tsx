@@ -24,7 +24,9 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();
   return (
-    <html lang="en">
+    // themeInit stamps data-theme on <html> before hydration, so React must not
+    // treat the attribute difference as a mismatch.
+    <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <div className="flex min-h-screen flex-col">

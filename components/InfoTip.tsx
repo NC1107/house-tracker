@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { useDismissable } from "@/lib/useDismissable";
 
 /**
  * A circled-i that opens a small popover with explanatory text. Used to keep chart
  * descriptions available without cluttering the card. Pure CSS glyph, no emoji.
  */
-export default function InfoTip({ text, label = "About this chart" }: { text: string; label?: string }) {
+export default function InfoTip({ text, label = "About this chart" }: { text: ReactNode; label?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const { open, setOpen } = useDismissable(ref);
 
